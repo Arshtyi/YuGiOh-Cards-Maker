@@ -1,3 +1,5 @@
 tmp/
 /figure
 .uv/
+__pycache__/
+/log
