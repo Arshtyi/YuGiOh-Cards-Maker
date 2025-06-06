@@ -220,9 +220,12 @@ def process_cards(tmp_dir, logger):
                             if race:
                                 result[card_id]["race"] = race.lower()
                 
-                # 添加cardimage字段，从card_images中提取image_url_cropped项
+                # 添加cardimage字段，从card_images中提取image_url_cropped项的文件名部分
                 if 'card_images' in card and card['card_images'] and 'image_url_cropped' in card['card_images'][0]:
-                    result[card_id]["cardimage"] = card['card_images'][0]['image_url_cropped']
+                    image_url = card['card_images'][0]['image_url_cropped']
+                    # 只保留URL的文件名部分（包括后缀）
+                    image_filename = image_url.split('/')[-1]
+                    result[card_id]["cardimage"] = image_filename
             else:
                 # 如果没有中文名称，跳过这张卡
                 logger.warning(f"卡片ID {card_id} 没有找到对应的中文名称，跳过该卡片")

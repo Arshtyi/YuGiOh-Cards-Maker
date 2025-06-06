@@ -3,3 +3,4 @@ tmp/
 .uv/
 __pycache__/
 /log
+/.conda
