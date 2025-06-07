@@ -3,8 +3,9 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
-using System.Drawing;
-using System.Drawing.Imaging;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats.Png;
 
 namespace Yugioh
 {
@@ -32,10 +33,9 @@ namespace Yugioh
                 return;
             }
             
-            // 随机选择卡片
-            Console.WriteLine($"从{dict.Count}张卡片中随机选择{maxCount}张进行处理...");
-            var rnd = new Random();
-            var cards = dict.Values.Where(c => !string.IsNullOrEmpty(c.FrameType)).OrderBy(_ => rnd.Next()).Take(maxCount).ToList();
+            // 选择前500张卡片
+            Console.WriteLine($"从{dict.Count}张卡片中选择前{maxCount}张进行处理...");
+            var cards = dict.Values.Where(c => !string.IsNullOrEmpty(c.FrameType)).Take(maxCount).ToList();
             
             // 并行处理每张卡
             var options = new ParallelOptions { MaxDegreeOfParallelism = 500 };
@@ -81,7 +81,11 @@ namespace Yugioh
                     }
                     
                     var outPath = Path.Combine(outputFigureDir, $"{card.Id}.png");
-                    File.Copy(frameFile, outPath, true);
+                    // 使用ImageSharp库来复制图像
+                    using (var image = Image.Load(frameFile))
+                    {
+                        image.Save(outPath);
+                    }
                     
                     Interlocked.Increment(ref processed);
                     if (processed % 50 == 0)
