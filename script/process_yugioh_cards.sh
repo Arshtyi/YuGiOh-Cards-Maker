@@ -2,6 +2,7 @@
 SCRIPT_DIR=$(dirname "$0")
 cd "$SCRIPT_DIR/.." || exit 1
 TMP_DIR="tmp"
+rm -rf "$TMP_DIR"
 mkdir -p "$TMP_DIR"
 current_fd_limit=$(ulimit -n)
 if [ "$current_fd_limit" -lt 4096 ]; then
@@ -216,6 +217,8 @@ for card in prodeck_data.get('data', []):
                     # 添加frameType字段
                     if 'frameType' in card:
                         frame_type = card.get('frameType')
+                        # 将下划线替换为连字符，例如将fusion_pendulum替换为fusion-pendulum
+                        frame_type = frame_type.replace('_', '-')
                         result[card_id]["frameType"] = frame_type
                         
                         # 如果是灵摆卡，添加灵摆描述和刻度
@@ -279,6 +282,7 @@ if [ $? -ne 0 ]; then
     echo "错误: 卡片数据处理失败"
     exit 1
 fi
+rm -f "$TMP_DIR/ygocdb_cards.json" "$TMP_DIR/ygoprodeck_cardinfo.json"
 echo "卡片处理完成！数据已保存到 $TMP_DIR/cards.json"
 echo "所有操作已完成！"
 exit 0
