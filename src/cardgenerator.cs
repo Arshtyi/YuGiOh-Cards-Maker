@@ -139,6 +139,9 @@ namespace Yugioh
                             }
                         }
                         
+                        // 添加攻防值图像
+                        AddAtkDefImage(image, card, assetFigureDir);
+                        
                         // 绘制卡名
                         if (!string.IsNullOrEmpty(card.Name))
                         {
@@ -329,6 +332,38 @@ namespace Yugioh
             }
             
             return effectiveLength;
+        }
+        
+        // 添加攻防值图像
+        private static void AddAtkDefImage(Image image, Card card, string assetFigureDir)
+        {
+            try
+            {
+                var frameType = card.FrameType?.ToLower() ?? "";
+                bool isMonsterCard = !frameType.Contains("spell") && !frameType.Contains("trap");
+                if (isMonsterCard)
+                {
+                    string atkDefImageName = card.LinkValue.HasValue && card.LinkValue.Value > 0 ? "atk-link.png" : "atk-def.png";
+                    string atkDefImagePath = Path.Combine(assetFigureDir, atkDefImageName);
+                    if (File.Exists(atkDefImagePath))
+                    {
+                        using (var atkDefImage = Image.Load(atkDefImagePath))
+                        {
+                            int posX = 106;
+                            int posY = 1854; 
+                            image.Mutate(ctx => ctx.DrawImage(atkDefImage, new Point(posX, posY), 1f));
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"错误: 未找到攻防图像文件: {atkDefImagePath}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"添加攻防图像失败: {ex.Message}");
+            }
         }
         
         // 判断是否为拉丁字符（英文字母、数字、常见标点等）

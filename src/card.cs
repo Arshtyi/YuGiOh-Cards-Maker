@@ -11,5 +11,7 @@ namespace Yugioh
         public string? FrameType { get; set; }
         [JsonPropertyName("cardimage")]
         public string? CardImage { get; set; }
+        [JsonPropertyName("linkval")]
+        public int? LinkValue { get; set; }
     }
 }
