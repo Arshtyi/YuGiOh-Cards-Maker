@@ -6,25 +6,72 @@ using System.Threading.Tasks;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Formats.Png;
-
+using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.Fonts;
+using System.Numerics;
 namespace Yugioh
 {
     public static class CardGenerator
     {
-        public static void GenerateCards(string cardsJsonPath, string assetFigureDir, string outputFigureDir, int maxCount = 500)
+        private static readonly RectangleF CardNameArea = new RectangleF(89.86f, 96.10f, 1113.00f - 89.86f, 224.71f - 96.10f);
+        private static readonly string FontPath = Path.Combine("asset", "font", "sc", "XinHuaKaiTi.ttf");
+        private static Font? nameBlackFont;
+        private static Font? nameWhiteFont;
+        private static Color nameBlackColor;
+        private static Color nameWhiteColor;
+        private static Color nameShadowColor;
+        private static FontFamily fontFamily;
+        private static FontCollection LoadFonts()
+        {
+            var fontCollection = new FontCollection();
+            try
+            {
+                var fontFamily = fontCollection.Add(FontPath);
+                CardGenerator.fontFamily = fontFamily;
+                float fontSize = 95f;
+                nameBlackFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
+                nameWhiteFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
+                nameBlackColor = Color.Black;
+                nameWhiteColor = Color.White;
+                nameShadowColor = Color.FromRgba(0, 0, 0, 80);
+                return fontCollection;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"加载字体失败: {ex.Message}");
+                throw;
+            }
+        }
+
+        public static void GenerateCards(string cardsJsonPath, string assetFigureDir, string outputFigureDir, int maxCount = int.MaxValue)
         {
             Console.WriteLine("开始卡片图像生成...");
-            
             if (!File.Exists(cardsJsonPath))
             {
                 Console.WriteLine($"错误: 未找到卡片数据文件: {cardsJsonPath}");
                 return;
             }
+            // 清空输出目录
+            if (Directory.Exists(outputFigureDir))
+            {
+                Directory.CreateDirectory(outputFigureDir);
+                foreach (var file in Directory.GetFiles(outputFigureDir, "*.png"))
+                {
+                    try
+                    {
+                        File.Delete(file);
+                    }
+                    catch
+                    {
+                        // 忽略删除错误
+                    }
+                }
+            }
+            else
+            {
+                Directory.CreateDirectory(outputFigureDir);
+            }
             
-            // 确保输出目录存在
-            Directory.CreateDirectory(outputFigureDir);
-            
-            Console.WriteLine("正在加载卡片数据...");
             var json = File.ReadAllText(cardsJsonPath);
             var dict = JsonSerializer.Deserialize<Dictionary<string, Card>>(json);
             if (dict == null)
@@ -33,75 +80,267 @@ namespace Yugioh
                 return;
             }
             
-            // 选择前500张卡片
-            Console.WriteLine($"从{dict.Count}张卡片中选择前{maxCount}张进行处理...");
-            var cards = dict.Values.Where(c => !string.IsNullOrEmpty(c.FrameType)).Take(maxCount).ToList();
+            var allValidCards = dict.Values.Where(c => !string.IsNullOrEmpty(c.FrameType)).ToList();
+            List<Card> cardsToProcess;
             
-            // 并行处理每张卡
+            if (maxCount < allValidCards.Count)
+            {
+                cardsToProcess = allValidCards.Take(maxCount).ToList();
+                Console.WriteLine($"将处理前{maxCount}张卡片");
+            }
+            else
+            {
+                cardsToProcess = allValidCards;
+                Console.WriteLine($"将处理全部{allValidCards.Count}张卡片");
+            }
+            
+            LoadFonts();
+            
+            // 并行处理卡片
             var options = new ParallelOptions { MaxDegreeOfParallelism = 500 };
             int processed = 0;
             int failed = 0;
             
-            Console.WriteLine($"开始并行处理{cards.Count}张卡片，最大并行度: {options.MaxDegreeOfParallelism}");
-            
-            Parallel.ForEach(cards, options, card =>
+            Parallel.ForEach(cardsToProcess, options, card =>
             {
                 try
                 {
                     var frameType = card.FrameType?.ToLower() ?? "normal";
-                    string frameFile = null;
+                    string? frameFile = null;
                     
-                    // 直接根据frameType构造卡框文件路径
                     string exactFramePath = Path.Combine(assetFigureDir, $"card-{frameType}.png");
                     if (File.Exists(exactFramePath))
                     {
                         frameFile = exactFramePath;
                     }
                     
-                    // 如果未找到，使用通用normal卡框
-                    if (frameFile == null || !File.Exists(frameFile))
-                    {
-                        frameFile = Path.Combine(assetFigureDir, "card-normal.png");
-                        if (!File.Exists(frameFile))
-                        {
-                            // 最后尝试使用任何可用的卡框
-                            var anyFrame = Directory.GetFiles(assetFigureDir, "card-*.png").FirstOrDefault();
-                            if (anyFrame != null)
-                            {
-                                frameFile = anyFrame;
-                            }
-                        }
-                    }
-                    
                     if (frameFile == null)
                     {
+                        Console.WriteLine($"错误: 无法找到卡框文件，卡片ID: {card.Id}, 名称: {card.Name}, 框架类型: {frameType}");
                         Interlocked.Increment(ref failed);
-                        Console.WriteLine($"未找到frameType={frameType}的卡框");
                         return;
                     }
                     
                     var outPath = Path.Combine(outputFigureDir, $"{card.Id}.png");
-                    // 使用ImageSharp库来复制图像
                     using (var image = Image.Load(frameFile))
                     {
+                        // 如果是灵摆卡片，覆盖灵摆遮罩
+                        if (frameType.Contains("pendulum"))
+                        {
+                            string pendulumMaskPath = Path.Combine(assetFigureDir, "card-mask-pendulum.png");
+                            if (File.Exists(pendulumMaskPath))
+                            {
+                                using (var pendulumMask = Image.Load(pendulumMaskPath))
+                                {
+                                    int maskX = 70;
+                                    int maskY = 354;
+                                    image.Mutate(ctx => ctx.DrawImage(pendulumMask, new Point(maskX, maskY), 1f));
+                                }
+                            }
+                        }
+                        
+                        // 绘制卡名
+                        if (!string.IsNullOrEmpty(card.Name))
+                        {
+                            bool isSpecialCard = frameType.Contains("xyz") || 
+                                               frameType.Contains("trap") || 
+                                               frameType.Contains("spell");
+                            
+                            DrawCardName(image, card.Name, isSpecialCard);
+                        }
+                        
                         image.Save(outPath);
                     }
                     
                     Interlocked.Increment(ref processed);
-                    if (processed % 50 == 0)
+                    if (processed % 100 == 0)
                     {
-                        Console.WriteLine($"已处理: {processed}/{cards.Count} 张卡片");
+                        Console.WriteLine($"已处理: {processed}/{cardsToProcess.Count} 张卡片");
                     }
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine($"处理卡片失败: ID={card.Id}, 名称={card.Name}, 错误: {ex.Message}");
                     Interlocked.Increment(ref failed);
-                    Console.WriteLine($"生成卡片{card.Id}时出错: {ex.Message}");
                 }
             });
             
             Console.WriteLine($"卡片生成完成！成功: {processed}, 失败: {failed}");
             Console.WriteLine($"输出目录: {Path.GetFullPath(outputFigureDir)}");
+        }
+        
+        // 绘制卡名 - 使用动态字体大小适配长卡名
+        private static void DrawCardName(Image image, string cardName, bool isSpecialCard)
+        {
+            try
+            {
+                float fontSize = 95f;
+                float posYOffset = 30f;
+                bool hasSpecialSeparator = cardName.Contains("·") || cardName.Contains("-") || cardName.Contains("・");
+                
+                // 计算卡名的有效长度（考虑到英文字符比中文字符窄）
+                float effectiveLength = CalculateEffectiveLength(cardName);
+                
+                if (effectiveLength <= 12)
+                {
+                    fontSize = 105f;
+                    posYOffset = 25f;
+                }
+                else if (effectiveLength <= 20)
+                {
+                    fontSize = 62f;
+                    posYOffset = 41f;
+                }
+                else if (effectiveLength <= 24)
+                {
+                    fontSize = 58f;
+                    posYOffset = 43f;
+                }
+                else
+                {
+                    fontSize = 54f;
+                    posYOffset = 45f;
+                }
+                
+                Font nameFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
+                Color textColor = isSpecialCard ? nameWhiteColor : nameBlackColor;
+                var textOptions = new TextOptions(nameFont)
+                {
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                };
+                
+                FontRectangle size = TextMeasurer.MeasureSize(cardName, textOptions);
+                float width = size.Width;
+                
+                float maxWidth = CardNameArea.Width * 0.97f;
+                float sx = 1.0f;
+                
+                if (width > maxWidth)
+                {
+                    sx = maxWidth / width;
+                    float minScale = 0.96f;
+                    if (effectiveLength <= 1.5f || (hasSpecialSeparator && effectiveLength <= 10f))
+                    {
+                        minScale = 0.98f; 
+                    }
+                    else if (effectiveLength > 20f)
+                    {
+                        minScale = 0.75f;
+                    }
+                    else if (effectiveLength > 16f)
+                    {
+                        minScale = 0.85f;
+                    }
+                    else if (effectiveLength > 12f)
+                    {
+                        minScale = 0.89f;
+                    }
+                    else if (effectiveLength > 10f)
+                    {
+                        minScale = 0.92f;
+                    }
+                    else if (effectiveLength > 8f)
+                    {
+                        minScale = 0.93f;
+                    }
+                    else if (effectiveLength > 6f)
+                    {
+                        minScale = 0.95f; 
+                    }
+                    else if (effectiveLength > 4f)
+                    {
+                        minScale = 0.96f; 
+                    }
+                    
+                    if (sx < minScale)
+                    {
+                        sx = minScale;
+                        int attempts = 0;
+                        float reductionFactor = 0.95f;
+                        if (effectiveLength <= 1.5f || hasSpecialSeparator)
+                        {
+                            reductionFactor = 0.98f;
+                        }
+                        while (width * sx > maxWidth * 1.02f && attempts < 3)
+                        {
+                            fontSize = fontSize * reductionFactor;
+                            nameFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
+                            textOptions = new TextOptions(nameFont)
+                            {
+                                HorizontalAlignment = HorizontalAlignment.Left,
+                                VerticalAlignment = VerticalAlignment.Top
+                            };
+                            size = TextMeasurer.MeasureSize(cardName, textOptions);
+                            width = size.Width;
+                            if (width > maxWidth)
+                            {
+                                sx = Math.Max(maxWidth / width, minScale);
+                            }
+                            else
+                            {
+                                sx = 1.0f;
+                                break;
+                            }
+                            attempts++;
+                        }
+                    }
+                }
+                float posX = CardNameArea.X + 20f;
+                float posY = CardNameArea.Y + posYOffset;
+                image.Mutate(ctx =>
+                {
+                    Matrix3x2 matrix = Matrix3x2.CreateScale(sx, 1.0f) * Matrix3x2.CreateTranslation(posX, posY);
+                    ctx.SetDrawingTransform(matrix);
+                    // 绘制阴影
+                    ctx.DrawText(cardName, nameFont, nameShadowColor, new PointF(3f, 3f));
+                    // 绘制主文本
+                    ctx.DrawText(cardName, nameFont, textColor, new PointF(0f, 0f));
+                    ctx.SetDrawingTransform(Matrix3x2.Identity);
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"绘制卡名失败: {ex.Message}");
+            }
+        }
+        // 计算卡名的有效长度（考虑到英文字符通常比中文字符窄）
+        private static float CalculateEffectiveLength(string cardName)
+        {
+            float effectiveLength = 0;
+            
+            foreach (char c in cardName)
+            {
+                if (IsLatinCharacter(c))
+                {
+                    // 英文字母、数字和窄符号计为0.5个字符长度
+                    effectiveLength += 0.5f;
+                }
+                else if (IsSpecialSeparator(c))
+                {
+                    // 特殊分隔符计为0.7个字符长度
+                    effectiveLength += 0.7f;
+                }
+                else
+                {
+                    // 中文汉字、日文假名等宽字符计为1个字符长度
+                    effectiveLength += 1.0f;
+                }
+            }
+            
+            return effectiveLength;
+        }
+        
+        // 判断是否为拉丁字符（英文字母、数字、常见标点等）
+        private static bool IsLatinCharacter(char c)
+        {
+            // ASCII 码范围（基本拉丁字符集）
+            return c <= 127;
+        }
+        // 判断是否为特殊分隔符
+        private static bool IsSpecialSeparator(char c)
+        {
+            return c == '·' || c == '-' || c == '・' || c == '_' || c == '=' || c == '+' || c == '/';
         }
     }
 }

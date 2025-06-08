@@ -1,6 +1,4 @@
-// 卡片数据结构
 using System.Text.Json.Serialization;
-
 namespace Yugioh
 {
     public class Card
@@ -13,6 +11,5 @@ namespace Yugioh
         public string? FrameType { get; set; }
         [JsonPropertyName("cardimage")]
         public string? CardImage { get; set; }
-        // ...可根据需要扩展字段...
     }
 }
