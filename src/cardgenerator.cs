@@ -148,7 +148,9 @@ namespace Yugioh
                         AddPendulumScale(image, card);
                         // 添加星级/阶级图标
                         AddLevelOrRank(image, card, assetFigureDir);
-                        bool isSpecialCard = frameType.Contains("xyz") || frameType.Contains("trap") || frameType.Contains("spell");
+                        bool isXyzMonster = frameType.Contains("xyz");
+                        bool isSpellOrTrap = card.CardType?.ToLower() == "spell" || card.CardType?.ToLower() == "trap";
+                        bool isSpecialCard = isXyzMonster || isSpellOrTrap;
                         DrawCardName(image, card.Name, isSpecialCard);
                         // 添加卡片ID
                         AddCardID(image, card);
@@ -331,7 +333,7 @@ namespace Yugioh
             try
             {
                 var frameType = card.FrameType?.ToLower() ?? "";
-                bool isMonsterCard = !frameType.Contains("spell") && !frameType.Contains("trap");
+                bool isMonsterCard = card.CardType?.ToLower() == "monster";
                 if (isMonsterCard)
                 {
                     string atkDefImageName = card.LinkValue.HasValue && card.LinkValue.Value > 0 ? "atk-link.png" : "atk-def.png";
@@ -435,7 +437,7 @@ namespace Yugioh
             try
             {
                 var frameType = card.FrameType?.ToLower() ?? "";
-                bool isMonsterCard = !frameType.Contains("spell") && !frameType.Contains("trap");
+                bool isMonsterCard = card.CardType?.ToLower() == "monster";
                 if (!isMonsterCard || !card.Level.HasValue || card.Level.Value <= 0)
                 {
                     return;

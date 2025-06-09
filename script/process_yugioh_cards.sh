@@ -256,6 +256,25 @@ for card in prodeck_data.get('data', []):
 print(f"处理完成，共生成{len(result)}张卡的数据")
 output_file = tmp_dir / "cards.json"
 try:
+    other_json_path = project_root / "res" / "other.json"
+    other_data = {}
+    if other_json_path.exists():
+        try:
+            with open(other_json_path, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+                if content and content != '{}':
+                    other_data = json.loads(content)
+                    print(f"成功加载other.json，合并{len(other_data)}条记录")
+        except Exception as e:
+            print(f"读取other.json时出错: {e}，将跳过合并")
+    if other_data:
+        for card_id, card_info in other_data.items():
+            if card_id in result:
+                result[card_id].update(card_info)
+            else:
+                result[card_id] = card_info
+        print(f"合并other.json后，共有{len(result)}张卡的数据")
+    
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
     print(f"成功将结果保存到 {output_file}")
@@ -267,6 +286,8 @@ if [ $? -ne 0 ]; then
     echo "错误: 卡片数据处理失败"
     exit 1
 fi
+cp -f "$TMP_DIR/ygocdb_cards.json" "dev/ygocdb_cards.json"
+cp -f "$TMP_DIR/ygoprodeck_cardinfo.json" "dev/ygoprodeck_cardinfo.json"
 rm -f "$TMP_DIR/ygocdb_cards.json" "$TMP_DIR/ygoprodeck_cardinfo.json"
 echo "卡片处理完成！数据已保存到 $TMP_DIR/cards.json"
 echo "正在执行最终清理检查..."

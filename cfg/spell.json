@@ -1,0 +1,10 @@
+{
+    "name": "魔法",
+    "id": 12345678,
+    "description": "效果",
+    "cardtype": "spell",
+    "frameType": "spell",
+    "attribute": "spell",
+    "race": "normal",
+    "cardimage": "example.jpg"
+}

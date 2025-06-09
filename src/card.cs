@@ -9,6 +9,8 @@ namespace Yugioh
         public string Name { get; set; } = string.Empty;
         [JsonPropertyName("frameType")]
         public string? FrameType { get; set; }
+        [JsonPropertyName("cardtype")]
+        public string? CardType { get; set; }
         [JsonPropertyName("cardimage")]
         public string? CardImage { get; set; }
         [JsonPropertyName("linkval")]
