@@ -440,7 +440,7 @@ namespace Yugioh
             return c == '·' || c == '-' || c == '・' || c == '_' || c == '=' || c == '+' || c == '/';
         }
         
-        // 添加攻击力和守备力数值
+        // 添加攻击力和守备力/链接值数值
         private static void AddAtkDefValues(Image image, Card card)
         {
             try
@@ -464,7 +464,14 @@ namespace Yugioh
                 float atkY = 1857f;
                 image.Mutate(ctx => ctx.DrawText(atkText, font, color, new PointF(atkX, atkY)));
                 bool isLinkMonster = card.LinkValue.HasValue && card.LinkValue.Value > 0;
-                if (!isLinkMonster && !string.IsNullOrEmpty(card.Def))
+                if (isLinkMonster) 
+                {
+                    string linkText = card.LinkValue.Value.ToString();
+                    float linkX = 1235f;
+                    float linkY = 1857f;
+                    image.Mutate(ctx => ctx.DrawText(linkText, font, color, new PointF(linkX, linkY)));
+                }
+                else if (!string.IsNullOrEmpty(card.Def))
                 {
                     string defText = card.Def;
                     if (defText == "-1")
@@ -478,7 +485,7 @@ namespace Yugioh
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加攻击力/守备力数值失败: {ex.Message}");
+                Console.WriteLine($"添加攻击力/守备力/链接值数值失败: {ex.Message}");
             }
         }
     }
