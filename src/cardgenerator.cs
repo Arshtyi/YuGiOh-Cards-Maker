@@ -146,6 +146,8 @@ namespace Yugioh
                         AddAtkDefImage(image, card, assetFigureDir);
                         // 添加灵摆刻度
                         AddPendulumScale(image, card);
+                        // 添加星级/阶级图标
+                        AddLevelOrRank(image, card, assetFigureDir);
                         bool isSpecialCard = frameType.Contains("xyz") || frameType.Contains("trap") || frameType.Contains("spell");
                         DrawCardName(image, card.Name, isSpecialCard);
                         // 添加卡片ID
@@ -424,6 +426,46 @@ namespace Yugioh
             catch (Exception ex)
             {
                 Console.WriteLine($"添加灵摆刻度失败: {ex.Message}");
+            }
+        }
+        
+        // 添加星级/阶级图标
+        private static void AddLevelOrRank(Image image, Card card, string assetFigureDir)
+        {
+            try
+            {
+                var frameType = card.FrameType?.ToLower() ?? "";
+                bool isMonsterCard = !frameType.Contains("spell") && !frameType.Contains("trap");
+                if (!isMonsterCard || !card.Level.HasValue || card.Level.Value <= 0)
+                {
+                    return;
+                }
+                bool isXyz = frameType.Contains("xyz");
+                string iconFileName = isXyz ? "rank.png" : "level.png";
+                string iconFilePath = Path.Combine(assetFigureDir, iconFileName);
+                if (!File.Exists(iconFilePath))
+                {
+                    Console.WriteLine($"错误: 未找到星级/阶级图标文件: {iconFilePath}");
+                    return;
+                }
+                // 最右边一个星级图标的右上角坐标
+                int rightTopX = 1279;
+                int rightTopY = 271;
+                int iconSpacing = 0; 
+                
+                using (var levelIcon = Image.Load(iconFilePath))
+                {
+                    int iconWidth = levelIcon.Width;
+                    for (int i = 0; i < card.Level.Value; i++)
+                    {
+                        int posX = rightTopX - (i * (iconWidth + iconSpacing));
+                        image.Mutate(ctx => ctx.DrawImage(levelIcon, new Point(posX - iconWidth, rightTopY), 1f));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"添加星级/阶级图标失败: {ex.Message}");
             }
         }
         
