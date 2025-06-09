@@ -549,9 +549,7 @@ namespace Yugioh
                 var fontCollection = new FontCollection();
                 var fontFamily = fontCollection.Add(fontPath);
                 var font = fontFamily.CreateFont(50f, FontStyle.Regular); 
-                // 对于XYZ卡使用白色，其他卡使用黑色
                 var color = frameType.Contains("xyz") ? Color.White : Color.Black;
-                // 将ID格式化为8位，不足的前面补0
                 string idText = card.Id.ToString().PadLeft(8, '0');
                 float idX = 64f;
                 float idY = 1934f;
@@ -647,16 +645,12 @@ namespace Yugioh
                     else
                     {
                         Console.WriteLine($"警告: 未找到图标: {iconPath}");
-                        // 如果找不到图标，直接绘制完整文字
                         image.Mutate(ctx => ctx.DrawText("】", font, color, new PointF(startX + prefixSize.Width, posY)));
                     }
                 }
                 else
                 {
-                    // 没有图标时，直接绘制完整文字【魔法卡】或【陷阱卡】
                     string fullText = isSpell ? "【魔法卡】" : "【陷阱卡】";
-                    // 清除之前绘制的前缀文字
-                    // 注意：ImageSharp没有直接擦除文字的功能，所以我们直接在新位置绘制完整文字
                     image.Mutate(ctx => ctx.DrawText(fullText, font, color, new PointF(840f, posY)));
                 }
             }
