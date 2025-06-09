@@ -27,5 +27,7 @@ namespace Yugioh
         public string? Def { get; set; }
         [JsonPropertyName("level")]
         public int? Level { get; set; }
+        [JsonPropertyName("race")]
+        public string? Race { get; set; }
     }
 }

@@ -154,6 +154,8 @@ namespace Yugioh
                         DrawCardName(image, card.Name, isSpecialCard);
                         // 添加卡片ID
                         AddCardID(image, card);
+                        // 添加魔法卡/陷阱卡类型文字
+                        AddCardTypeText(image, card);
                         image.Save(outPath);
                     }
                     Interlocked.Increment(ref processed);
@@ -587,6 +589,80 @@ namespace Yugioh
             catch (Exception ex)
             {
                 Console.WriteLine($"添加卡图失败: {ex.Message}");
+            }
+        }
+        
+        // 添加魔法卡/陷阱卡字样及icon
+        private static void AddCardTypeText(Image image, Card card)
+        {
+            try
+            {
+                if (card.CardType?.ToLower() != "spell" && card.CardType?.ToLower() != "trap")
+                {
+                    return;
+                }
+                bool isSpell = card.CardType?.ToLower() == "spell";
+                string race = card.Race?.ToLower() ?? "normal";
+                bool hasIcon = race != "normal";
+                string fontPath = FontPath;
+                if (!File.Exists(fontPath))
+                {
+                    Console.WriteLine($"错误: 未找到卡片类型字体文件: {fontPath}");
+                    return;
+                }
+                var fontCollection = new FontCollection();
+                var fontFamily = fontCollection.Add(fontPath);
+                var font = fontFamily.CreateFont(100f, FontStyle.Regular);
+                var color = Color.Black;
+                float posY = 270f;
+                float startX = hasIcon ? 750f : 840f;
+                string prefixText = isSpell ? "【魔法卡" : "【陷阱卡";
+                image.Mutate(ctx => ctx.DrawText(prefixText, font, color, new PointF(startX, posY)));
+                var textOptions = new TextOptions(font)
+                {
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                };
+                FontRectangle prefixSize = TextMeasurer.MeasureSize(prefixText, textOptions);
+                if (hasIcon)
+                {
+                    string iconName = $"icon-{race}.png";
+                    string iconPath = Path.Combine("asset", "figure", iconName);
+                    if (File.Exists(iconPath))
+                    {
+                        using (var iconImage = Image.Load(iconPath))
+                        {
+                            int iconX = 1160;
+                            int iconY = 275;
+                            float scale = 1.1f;
+                            int newWidth = (int)(iconImage.Width * scale);
+                            int newHeight = (int)(iconImage.Height * scale);
+                            var resizedIcon = iconImage.Clone(ctx => ctx.Resize(newWidth, newHeight));
+                            image.Mutate(ctx => ctx.DrawImage(resizedIcon, new Point(iconX, iconY), 1f));
+                            // 绘制后半部分 "】"
+                            float suffixX = iconX + newWidth;
+                            image.Mutate(ctx => ctx.DrawText("】", font, color, new PointF(suffixX, posY)));
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"警告: 未找到图标: {iconPath}");
+                        // 如果找不到图标，直接绘制完整文字
+                        image.Mutate(ctx => ctx.DrawText("】", font, color, new PointF(startX + prefixSize.Width, posY)));
+                    }
+                }
+                else
+                {
+                    // 没有图标时，直接绘制完整文字【魔法卡】或【陷阱卡】
+                    string fullText = isSpell ? "【魔法卡】" : "【陷阱卡】";
+                    // 清除之前绘制的前缀文字
+                    // 注意：ImageSharp没有直接擦除文字的功能，所以我们直接在新位置绘制完整文字
+                    image.Mutate(ctx => ctx.DrawText(fullText, font, color, new PointF(840f, posY)));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"添加卡片类型文字失败: {ex.Message}");
             }
         }
     }
