@@ -150,6 +150,8 @@ namespace Yugioh
                         AddAtkDefImage(image, card, assetFigureDir);
                         bool isSpecialCard = frameType.Contains("xyz") || frameType.Contains("trap") || frameType.Contains("spell");
                         DrawCardName(image, card.Name, isSpecialCard);
+                        // 添加卡片ID
+                        AddCardID(image, card);
                         image.Save(outPath);
                     }
                     Interlocked.Increment(ref processed);
@@ -486,6 +488,35 @@ namespace Yugioh
             catch (Exception ex)
             {
                 Console.WriteLine($"添加攻击力/守备力/链接值数值失败: {ex.Message}");
+            }
+        }
+        // 添加卡片ID
+        private static void AddCardID(Image image, Card card)
+        {
+            try
+            {
+                var frameType = card.FrameType?.ToLower() ?? "";
+                string fontPath = Path.Combine("asset", "font", "special", "ygo-password.ttf");
+                if (!File.Exists(fontPath))
+                {
+                    Console.WriteLine($"错误: 未找到卡片ID字体文件: {fontPath}");
+                    return;
+                }
+                
+                var fontCollection = new FontCollection();
+                var fontFamily = fontCollection.Add(fontPath);
+                var font = fontFamily.CreateFont(50f, FontStyle.Regular); 
+                // 对于XYZ卡使用白色，其他卡使用黑色
+                var color = frameType.Contains("xyz") ? Color.White : Color.Black;
+                // 将ID格式化为8位，不足的前面补0
+                string idText = card.Id.ToString().PadLeft(8, '0');
+                float idX = 64f;
+                float idY = 1934f;
+                image.Mutate(ctx => ctx.DrawText(idText, font, color, new PointF(idX, idY)));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"添加卡片ID失败: {ex.Message}");
             }
         }
     }
