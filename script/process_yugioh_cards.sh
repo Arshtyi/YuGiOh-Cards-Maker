@@ -16,13 +16,13 @@ if [ "$current_proc_limit" -lt 4096 ]; then
 fi
 echo "正在下载ygocdb卡片数据..."
 wget -q https://ygocdb.com/api/v0/cards.zip -O "$TMP_DIR/ygocdb_cards.zip"
-unzip -q -o "$TMP_DIR/ygocdb_cards.zip" -d "$TMP_DIR"
-mv "$TMP_DIR/cards.json" "$TMP_DIR/ygocdb_cards.json"
-rm "$TMP_DIR/ygocdb_cards.zip"
+unzip -q -o "$TMP_DIR/ygocdb_cards.zip" -d "$TMP_DIR" 
+jq . "$TMP_DIR/cards.json" > "$TMP_DIR/ygocdb_cards.json"
+rm "$TMP_DIR/cards.json" "$TMP_DIR/ygocdb_cards.zip"
 echo "正在下载ygoprodeck卡片数据..."
 curl -s https://db.ygoprodeck.com/api/v7/cardinfo.php | jq . > "$TMP_DIR/ygoprodeck_cardinfo.json"
 mkdir -p "$TMP_DIR/figure"
-THREAD_NUM=500
+THREAD_NUM=200
 echo "正在提取卡片图片URL..."
 jq -r '.data[].card_images[].image_url_cropped' "$TMP_DIR/ygoprodeck_cardinfo.json" > "$TMP_DIR/image_urls.txt"
 TOTAL=$(wc -l < "$TMP_DIR/image_urls.txt")

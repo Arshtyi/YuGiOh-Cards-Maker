@@ -25,5 +25,13 @@
         "x": [122, 1230],
         "y": 1415,
         "offsetX": 26
+    },
+    "cardImage": {
+        "scale": 1.7,
+        "x": {
+            "pendulum": 94,
+            "normal": 171
+        },
+        "y": 376
     }
 }

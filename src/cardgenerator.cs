@@ -99,12 +99,10 @@ namespace Yugioh
             }
             
             LoadFonts();
-            
-            // 并行处理卡片
+            // 并行处理
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 500 };
             int processed = 0;
             int failed = 0;
-            
             Parallel.ForEach(cardsToProcess, parallelOptions, card =>
             {
                 try
@@ -117,17 +115,19 @@ namespace Yugioh
                     {
                         frameFile = exactFramePath;
                     }
-                    
                     if (frameFile == null)
                     {
                         Console.WriteLine($"错误: 无法找到卡框文件，卡片ID: {card.Id}, 名称: {card.Name}, 框架类型: {frameType}");
                         Interlocked.Increment(ref failed);
                         return;
                     }
-                    
                     var outPath = Path.Combine(outputFigureDir, $"{card.Id}.png");
                     using (var image = Image.Load(frameFile))
                     {
+                        // 添加属性图
+                        AddAttributeImage(image, card, assetFigureDir);
+                        // 添加卡图
+                        AddCardImage(image, card, "tmp/figure");
                         // 如果是灵摆卡片，覆盖灵摆框
                         if (frameType.Contains("pendulum"))
                         {
@@ -142,12 +142,10 @@ namespace Yugioh
                                 }
                             }
                         }
-                        // 添加属性图
-                        AddAttributeImage(image, card, assetFigureDir);
-                        // 添加灵摆刻度
-                        AddPendulumScale(image, card);
                         // 添加攻守条
                         AddAtkDefImage(image, card, assetFigureDir);
+                        // 添加灵摆刻度
+                        AddPendulumScale(image, card);
                         bool isSpecialCard = frameType.Contains("xyz") || frameType.Contains("trap") || frameType.Contains("spell");
                         DrawCardName(image, card.Name, isSpecialCard);
                         // 添加卡片ID
@@ -200,7 +198,6 @@ namespace Yugioh
                     fontSize = 54f;
                     posYOffset = 45f;
                 }
-                
                 Font nameFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
                 Color textColor = isSpecialCard ? nameWhiteColor : nameBlackColor;
                 var textOptions = new TextOptions(nameFont)
@@ -517,6 +514,35 @@ namespace Yugioh
             catch (Exception ex)
             {
                 Console.WriteLine($"添加卡片ID失败: {ex.Message}");
+            }
+        }
+        
+        // 添加卡图
+        private static void AddCardImage(Image image, Card card, string figureDir)
+        {
+            try
+            {
+                string cardImagePath = Path.Combine(figureDir, $"{card.Id}.png");
+                if (File.Exists(cardImagePath))
+                {
+                    using (var cardImage = Image.Load(cardImagePath))
+                    {
+                        var frameType = card.FrameType?.ToLower() ?? "";
+                        int posX = frameType.Contains("pendulum") ? 94 : 171;
+                        int posY = 376;
+                        float scale = 1.7f;
+                        var resizedImage = cardImage.Clone(ctx => ctx.Resize((int)(cardImage.Width * scale), (int)(cardImage.Height * scale)));
+                        image.Mutate(ctx => ctx.DrawImage(resizedImage, new Point(posX, posY), 1f));
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"警告: 未找到卡图: {cardImagePath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"添加卡图失败: {ex.Message}");
             }
         }
     }
