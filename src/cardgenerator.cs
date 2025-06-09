@@ -440,20 +440,15 @@ namespace Yugioh
             return c == '·' || c == '-' || c == '・' || c == '_' || c == '=' || c == '+' || c == '/';
         }
         
-        // 添加攻击力数值
+        // 添加攻击力和守备力数值
         private static void AddAtkDefValues(Image image, Card card)
         {
             try
             {
-                if (string.IsNullOrEmpty(card.Atk))
-                {
-                    return;
-                }
-
                 string fontPath = Path.Combine("asset", "font", "special", "ygo-atk-def.ttf");
                 if (!File.Exists(fontPath))
                 {
-                    Console.WriteLine($"错误: 未找到攻击力字体文件: {fontPath}");
+                    Console.WriteLine($"错误: 未找到攻击力/守备力字体文件: {fontPath}");
                     return;
                 }
                 var fontCollection = new FontCollection();
@@ -465,14 +460,25 @@ namespace Yugioh
                 {
                     atkText = "?";
                 }
-                
                 float atkX = 870f;
                 float atkY = 1857f;
                 image.Mutate(ctx => ctx.DrawText(atkText, font, color, new PointF(atkX, atkY)));
+                bool isLinkMonster = card.LinkValue.HasValue && card.LinkValue.Value > 0;
+                if (!isLinkMonster && !string.IsNullOrEmpty(card.Def))
+                {
+                    string defText = card.Def;
+                    if (defText == "-1")
+                    {
+                        defText = "?";
+                    }
+                    float defX = 1156f;
+                    float defY = 1857f;
+                    image.Mutate(ctx => ctx.DrawText(defText, font, color, new PointF(defX, defY)));
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加攻击力数值失败: {ex.Message}");
+                Console.WriteLine($"添加攻击力/守备力数值失败: {ex.Message}");
             }
         }
     }
