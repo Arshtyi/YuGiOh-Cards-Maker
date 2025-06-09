@@ -13,5 +13,7 @@ namespace Yugioh
         public string? CardImage { get; set; }
         [JsonPropertyName("linkval")]
         public int? LinkValue { get; set; }
+        [JsonPropertyName("attribute")]
+        public string? Attribute { get; set; }
     }
 }

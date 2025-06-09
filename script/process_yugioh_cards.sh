@@ -250,6 +250,9 @@ for card in prodeck_data.get('data', []):
                     # 添加frameType字段为固定值
                     result[card_id]["frameType"] = card_type
                     
+                    # 添加attribute属性，spell和trap卡的attribute就是它们自身的类型
+                    result[card_id]["attribute"] = card_type
+                    
                     # 添加race字段（如果存在）
                     if 'race' in card:
                         race = card.get('race', '')

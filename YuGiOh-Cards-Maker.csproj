@@ -12,8 +12,6 @@
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.2" />
     <PackageReference Include="SixLabors.Fonts" Version="2.0.2" />
   </ItemGroup>
-
-  <!-- 排除ImgGen目录，因为它使用System.Drawing.Common而我们使用SixLabors.ImageSharp -->
   <ItemGroup>
     <Compile Remove="ImgGen\**" />
     <EmbeddedResource Remove="ImgGen\**" />

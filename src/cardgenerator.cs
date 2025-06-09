@@ -124,7 +124,7 @@ namespace Yugioh
                     var outPath = Path.Combine(outputFigureDir, $"{card.Id}.png");
                     using (var image = Image.Load(frameFile))
                     {
-                        // 如果是灵摆卡片，覆盖灵摆遮罩
+                        // 如果是灵摆卡片，覆盖灵摆框
                         if (frameType.Contains("pendulum"))
                         {
                             string pendulumMaskPath = Path.Combine(assetFigureDir, "card-mask-pendulum.png");
@@ -139,22 +139,15 @@ namespace Yugioh
                             }
                         }
                         
-                        // 添加攻防值图像
+                        // 添加属性图
+                        AddAttributeImage(image, card, assetFigureDir);
+                        // 添加攻守条
                         AddAtkDefImage(image, card, assetFigureDir);
-                        
                         // 绘制卡名
-                        if (!string.IsNullOrEmpty(card.Name))
-                        {
-                            bool isSpecialCard = frameType.Contains("xyz") || 
-                                               frameType.Contains("trap") || 
-                                               frameType.Contains("spell");
-                            
-                            DrawCardName(image, card.Name, isSpecialCard);
-                        }
-                        
+                        bool isSpecialCard = frameType.Contains("xyz") || frameType.Contains("trap") || frameType.Contains("spell");
+                        DrawCardName(image, card.Name, isSpecialCard);
                         image.Save(outPath);
                     }
-                    
                     Interlocked.Increment(ref processed);
                     if (processed % 100 == 0)
                     {
@@ -172,7 +165,7 @@ namespace Yugioh
             Console.WriteLine($"输出目录: {Path.GetFullPath(outputFigureDir)}");
         }
         
-        // 绘制卡名 - 使用动态字体大小适配长卡名
+        // 绘制卡名 ，使用动态字体大小适配长卡名
         private static void DrawCardName(Image image, string cardName, bool isSpecialCard)
         {
             try
@@ -307,7 +300,7 @@ namespace Yugioh
                 Console.WriteLine($"绘制卡名失败: {ex.Message}");
             }
         }
-        // 计算卡名的有效长度（考虑到英文字符通常比中文字符窄）
+        // 计算卡名的有效长度
         private static float CalculateEffectiveLength(string cardName)
         {
             float effectiveLength = 0;
@@ -334,7 +327,7 @@ namespace Yugioh
             return effectiveLength;
         }
         
-        // 添加攻防值图像
+        // 添加攻守条
         private static void AddAtkDefImage(Image image, Card card, string assetFigureDir)
         {
             try
@@ -356,13 +349,41 @@ namespace Yugioh
                     }
                     else
                     {
-                        Console.WriteLine($"错误: 未找到攻防图像文件: {atkDefImagePath}");
+                        Console.WriteLine($"错误: 未找到攻守条文件: {atkDefImagePath}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加攻防图像失败: {ex.Message}");
+                Console.WriteLine($"添加攻守条失败: {ex.Message}");
+            }
+        }
+        
+        // 添加属性图
+        private static void AddAttributeImage(Image image, Card card, string assetFigureDir)
+        {
+            try
+            {
+                string attributeImageName = $"attribute-{card.Attribute.ToLower()}.png";
+                string attributeImagePath = Path.Combine(assetFigureDir, attributeImageName);
+                
+                if (File.Exists(attributeImagePath))
+                {
+                    using (var attributeImage = Image.Load(attributeImagePath))
+                    {
+                        int posX = 1170;
+                        int posY = 96;
+                        image.Mutate(ctx => ctx.DrawImage(attributeImage, new Point(posX, posY), 1f));
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"错误: 未找到属性图像文件: {attributeImagePath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"添加属性图像失败: {ex.Message}");
             }
         }
         
