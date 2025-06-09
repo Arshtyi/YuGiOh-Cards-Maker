@@ -34,8 +34,51 @@ cat > "$TMP_DIR/download_worker.sh" << 'EOF'
 #!/bin/zsh
 url="$1"
 filename=$(basename "$url")
-if [[ ! -f "tmp/figure/$filename" ]]; then
-    wget -q --timeout=30 --tries=3 --retry-connrefused --waitretry=1 "$url" -O "tmp/figure/$filename" || echo "下载失败: $url"
+output_path="tmp/figure/$filename"
+final_png_path="${output_path%.jpg}.png"
+if [[ ! -f "$final_png_path" ]]; then
+    temp_path="${output_path}.tmp"
+    wget -q --timeout=30 --tries=3 --retry-connrefused --waitretry=1 "$url" -O "$temp_path"
+    if [ $? -ne 0 ]; then
+        echo "下载失败: $url"
+        rm -f "$temp_path" 2>/dev/null
+        exit 1
+    fi
+    if [ ! -s "$temp_path" ]; then
+        echo "删除空文件: $temp_path"
+        rm -f "$temp_path"
+        exit 1
+    fi
+    if ! identify "$temp_path" &>/dev/null; then
+        echo "删除损坏的图片: $temp_path"
+        rm -f "$temp_path"
+        exit 1
+    fi
+    if convert "$temp_path" "$final_png_path"; then
+        if ! identify "$final_png_path" &>/dev/null || [ ! -s "$final_png_path" ]; then
+            echo "PNG转换后无效，删除: $final_png_path"
+            rm -f "$final_png_path"
+            rm -f "$temp_path"
+            exit 1
+        fi
+        # 转换成功，删除临时文件
+        rm -f "$temp_path"
+        echo "成功下载并转换为PNG: $final_png_path"
+    else
+        echo "转换PNG失败: $temp_path"
+        rm -f "$temp_path"
+        rm -f "$final_png_path" 2>/dev/null
+        exit 1
+    fi
+else
+    if ! identify "$final_png_path" &>/dev/null || [ ! -s "$final_png_path" ]; then
+        echo "发现无效的PNG文件，重新下载: $url"
+        rm -f "$final_png_path"
+        # 递归调用自身以重新下载
+        $0 "$url"
+    else
+        echo "PNG文件已存在且有效: $final_png_path"
+    fi
 fi
 EOF
 chmod +x "$TMP_DIR/download_worker.sh"
@@ -226,5 +269,32 @@ if [ $? -ne 0 ]; then
 fi
 rm -f "$TMP_DIR/ygocdb_cards.json" "$TMP_DIR/ygoprodeck_cardinfo.json"
 echo "卡片处理完成！数据已保存到 $TMP_DIR/cards.json"
+echo "正在执行最终清理检查..."
+if [ -d "$TMP_DIR/figure" ]; then
+    jpg_count=$(find "$TMP_DIR/figure" -name "*.jpg" | wc -l)
+    if [ $jpg_count -gt 0 ]; then
+        echo "警告：仍有 $jpg_count 个JPG文件，这些文件将被删除"
+        find "$TMP_DIR/figure" -name "*.jpg" -delete
+    fi
+    find "$TMP_DIR/figure" -name "*.tmp" -delete
+    corrupted_count=0
+    for file in "$TMP_DIR/figure"/*.png; do
+        if [ -f "$file" ]; then
+            if ! identify "$file" &>/dev/null || [ ! -s "$file" ]; then
+                echo "删除无效的PNG图片文件: $file"
+                rm -f "$file"
+                ((corrupted_count++))
+            fi
+        fi
+    done
+    if [ $corrupted_count -gt 0 ]; then
+        echo "最终清理中删除了 $corrupted_count 个无效的PNG文件"
+    fi
+    find "$TMP_DIR/figure" -type f ! -name "*.png" -delete
+    final_png_count=$(find "$TMP_DIR/figure" -name "*.png" | wc -l)
+    echo "清理完成！$TMP_DIR/figure 目录中有 $final_png_count 个有效的PNG文件"
+else
+    echo "警告: $TMP_DIR/figure 目录不存在，跳过最终清理"
+fi
 echo "所有操作已完成！"
 exit 0
