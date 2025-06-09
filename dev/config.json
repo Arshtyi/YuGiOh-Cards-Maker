@@ -15,5 +15,10 @@
     "Attribute": {
         "x": 1217,
         "y": 96
+    },
+    "pendulumScale": {
+        "x": [122, 1230],
+        "y": 1415,
+        "offsetX": 26
     }
 }

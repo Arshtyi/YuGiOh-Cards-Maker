@@ -124,7 +124,7 @@ namespace Yugioh
                     var outPath = Path.Combine(outputFigureDir, $"{card.Id}.png");
                     using (var image = Image.Load(frameFile))
                     {
-                        // 如果是灵摆卡片，覆盖灵摆框
+                        // 如果是灵摆卡片，覆盖灵摆遮罩
                         if (frameType.Contains("pendulum"))
                         {
                             string pendulumMaskPath = Path.Combine(assetFigureDir, "card-mask-pendulum.png");
@@ -139,15 +139,31 @@ namespace Yugioh
                             }
                         }
                         
-                        // 添加属性图
+                        // 添加属性图像
                         AddAttributeImage(image, card, assetFigureDir);
-                        // 添加攻守条
+                        
+                        // 添加灵摆刻度
+                        AddPendulumScale(image, card);
+                        
+                        // 添加攻防值图像
                         AddAtkDefImage(image, card, assetFigureDir);
+                        
                         // 绘制卡名
-                        bool isSpecialCard = frameType.Contains("xyz") || frameType.Contains("trap") || frameType.Contains("spell");
-                        DrawCardName(image, card.Name, isSpecialCard);
+                        if (!string.IsNullOrEmpty(card.Name))
+                        {
+                            bool isSpecialCard = frameType.Contains("xyz") || 
+                                               frameType.Contains("trap") || 
+                                               frameType.Contains("spell");
+                            
+                            DrawCardName(image, card.Name, isSpecialCard);
+                        }
+                        
+                        // 添加灵摆刻度数值
+                        AddPendulumScale(image, card);
+                        
                         image.Save(outPath);
                     }
+                    
                     Interlocked.Increment(ref processed);
                     if (processed % 100 == 0)
                     {
@@ -165,7 +181,7 @@ namespace Yugioh
             Console.WriteLine($"输出目录: {Path.GetFullPath(outputFigureDir)}");
         }
         
-        // 绘制卡名 ，使用动态字体大小适配长卡名
+        // 绘制卡名 - 使用动态字体大小适配长卡名
         private static void DrawCardName(Image image, string cardName, bool isSpecialCard)
         {
             try
@@ -300,7 +316,7 @@ namespace Yugioh
                 Console.WriteLine($"绘制卡名失败: {ex.Message}");
             }
         }
-        // 计算卡名的有效长度
+        // 计算卡名的有效长度（考虑到英文字符通常比中文字符窄）
         private static float CalculateEffectiveLength(string cardName)
         {
             float effectiveLength = 0;
@@ -327,7 +343,7 @@ namespace Yugioh
             return effectiveLength;
         }
         
-        // 添加攻守条
+        // 添加攻防值图像
         private static void AddAtkDefImage(Image image, Card card, string assetFigureDir)
         {
             try
@@ -349,21 +365,27 @@ namespace Yugioh
                     }
                     else
                     {
-                        Console.WriteLine($"错误: 未找到攻守条文件: {atkDefImagePath}");
+                        Console.WriteLine($"错误: 未找到攻防图像文件: {atkDefImagePath}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加攻守条失败: {ex.Message}");
+                Console.WriteLine($"添加攻防图像失败: {ex.Message}");
             }
         }
         
-        // 添加属性图
+        // 添加属性图像
         private static void AddAttributeImage(Image image, Card card, string assetFigureDir)
         {
             try
             {
+                // 检查卡片是否有属性
+                if (string.IsNullOrEmpty(card.Attribute))
+                {
+                    return;
+                }
+                // 直接根据attribute属性确定图像
                 string attributeImageName = $"attribute-{card.Attribute.ToLower()}.png";
                 string attributeImagePath = Path.Combine(assetFigureDir, attributeImageName);
                 
@@ -371,8 +393,9 @@ namespace Yugioh
                 {
                     using (var attributeImage = Image.Load(attributeImagePath))
                     {
+                        // 指定贴图位置为1217,167（左上角对齐）
                         int posX = 1170;
-                        int posY = 96;
+                        int posY = 95;
                         image.Mutate(ctx => ctx.DrawImage(attributeImage, new Point(posX, posY), 1f));
                     }
                 }
@@ -384,6 +407,46 @@ namespace Yugioh
             catch (Exception ex)
             {
                 Console.WriteLine($"添加属性图像失败: {ex.Message}");
+            }
+        }
+        
+        // 添加灵摆刻度
+        private static void AddPendulumScale(Image image, Card card)
+        {
+            try
+            {
+                var frameType = card.FrameType?.ToLower() ?? "";
+                if (!frameType.Contains("pendulum") || !card.PendulumScale.HasValue)
+                {
+                    return;
+                }
+                string pendulumFontPath = Path.Combine("asset", "font", "special", "ygo-atk-def.ttf");
+                if (!File.Exists(pendulumFontPath))
+                {
+                    Console.WriteLine($"错误: 未找到灵摆刻度字体文件: {pendulumFontPath}");
+                    return;
+                }
+                var fontCollection = new FontCollection();
+                var pendulumFontFamily = fontCollection.Add(pendulumFontPath);
+                var pendulumFont = pendulumFontFamily.CreateFont(90f, FontStyle.Bold);
+                var color = Color.Black;
+                int leftScaleX = 122;
+                int leftScaleY = 1415;
+                int rightScaleX = 1230;
+                int rightScaleY = 1415;
+                string scaleText = card.PendulumScale.Value.ToString();
+                // 如果是两位数（10-13），则向左移动位置以确保对齐
+                int offsetX = 0;
+                if (scaleText.Length > 1)
+                {
+                    offsetX = 26;
+                }
+                image.Mutate(ctx => ctx.DrawText(scaleText, pendulumFont, color, new PointF(leftScaleX - offsetX, leftScaleY)));
+                image.Mutate(ctx => ctx.DrawText(scaleText, pendulumFont, color, new PointF(rightScaleX - offsetX, rightScaleY)));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"添加灵摆刻度失败: {ex.Message}");
             }
         }
         

@@ -15,5 +15,7 @@ namespace Yugioh
         public int? LinkValue { get; set; }
         [JsonPropertyName("attribute")]
         public string? Attribute { get; set; }
+        [JsonPropertyName("scale")]
+        public int? PendulumScale { get; set; }
     }
 }
