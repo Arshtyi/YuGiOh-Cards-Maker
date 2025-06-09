@@ -17,5 +17,11 @@ namespace Yugioh
         public string? Attribute { get; set; }
         [JsonPropertyName("scale")]
         public int? PendulumScale { get; set; }
+        [JsonPropertyName("atk")]
+        [JsonConverter(typeof(StringNumericConverter))]
+        public string? Atk { get; set; }
+        [JsonPropertyName("def")]
+        [JsonConverter(typeof(StringNumericConverter))]
+        public string? Def { get; set; }
     }
 }

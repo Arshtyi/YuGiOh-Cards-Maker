@@ -5,3 +5,5 @@
 /obj
 /bin
 /ImgGen
+/dev/ygoprodeck_cardinfo.json
+/dev/ygocdb_cards.json

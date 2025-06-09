@@ -73,7 +73,11 @@ namespace Yugioh
             }
             
             var json = File.ReadAllText(cardsJsonPath);
-            var dict = JsonSerializer.Deserialize<Dictionary<string, Card>>(json);
+            var jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            var dict = JsonSerializer.Deserialize<Dictionary<string, Card>>(json, jsonOptions);
             if (dict == null)
             {
                 Console.WriteLine("错误: 卡片数据解析失败");
@@ -97,11 +101,11 @@ namespace Yugioh
             LoadFonts();
             
             // 并行处理卡片
-            var options = new ParallelOptions { MaxDegreeOfParallelism = 500 };
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 500 };
             int processed = 0;
             int failed = 0;
             
-            Parallel.ForEach(cardsToProcess, options, card =>
+            Parallel.ForEach(cardsToProcess, parallelOptions, card =>
             {
                 try
                 {
@@ -124,7 +128,7 @@ namespace Yugioh
                     var outPath = Path.Combine(outputFigureDir, $"{card.Id}.png");
                     using (var image = Image.Load(frameFile))
                     {
-                        // 如果是灵摆卡片，覆盖灵摆遮罩
+                        // 如果是灵摆卡片，覆盖灵摆框
                         if (frameType.Contains("pendulum"))
                         {
                             string pendulumMaskPath = Path.Combine(assetFigureDir, "card-mask-pendulum.png");
@@ -138,32 +142,16 @@ namespace Yugioh
                                 }
                             }
                         }
-                        
-                        // 添加属性图像
+                        // 添加属性图
                         AddAttributeImage(image, card, assetFigureDir);
-                        
                         // 添加灵摆刻度
                         AddPendulumScale(image, card);
-                        
-                        // 添加攻防值图像
+                        // 添加攻守条
                         AddAtkDefImage(image, card, assetFigureDir);
-                        
-                        // 绘制卡名
-                        if (!string.IsNullOrEmpty(card.Name))
-                        {
-                            bool isSpecialCard = frameType.Contains("xyz") || 
-                                               frameType.Contains("trap") || 
-                                               frameType.Contains("spell");
-                            
-                            DrawCardName(image, card.Name, isSpecialCard);
-                        }
-                        
-                        // 添加灵摆刻度数值
-                        AddPendulumScale(image, card);
-                        
+                        bool isSpecialCard = frameType.Contains("xyz") || frameType.Contains("trap") || frameType.Contains("spell");
+                        DrawCardName(image, card.Name, isSpecialCard);
                         image.Save(outPath);
                     }
-                    
                     Interlocked.Increment(ref processed);
                     if (processed % 100 == 0)
                     {
@@ -181,7 +169,7 @@ namespace Yugioh
             Console.WriteLine($"输出目录: {Path.GetFullPath(outputFigureDir)}");
         }
         
-        // 绘制卡名 - 使用动态字体大小适配长卡名
+        // 绘制卡名 ，使用动态字体大小适配长卡名
         private static void DrawCardName(Image image, string cardName, bool isSpecialCard)
         {
             try
@@ -189,10 +177,7 @@ namespace Yugioh
                 float fontSize = 95f;
                 float posYOffset = 30f;
                 bool hasSpecialSeparator = cardName.Contains("·") || cardName.Contains("-") || cardName.Contains("・");
-                
-                // 计算卡名的有效长度（考虑到英文字符比中文字符窄）
                 float effectiveLength = CalculateEffectiveLength(cardName);
-                
                 if (effectiveLength <= 12)
                 {
                     fontSize = 105f;
@@ -224,10 +209,8 @@ namespace Yugioh
                 
                 FontRectangle size = TextMeasurer.MeasureSize(cardName, textOptions);
                 float width = size.Width;
-                
                 float maxWidth = CardNameArea.Width * 0.97f;
                 float sx = 1.0f;
-                
                 if (width > maxWidth)
                 {
                     sx = maxWidth / width;
@@ -304,9 +287,7 @@ namespace Yugioh
                 {
                     Matrix3x2 matrix = Matrix3x2.CreateScale(sx, 1.0f) * Matrix3x2.CreateTranslation(posX, posY);
                     ctx.SetDrawingTransform(matrix);
-                    // 绘制阴影
                     ctx.DrawText(cardName, nameFont, nameShadowColor, new PointF(3f, 3f));
-                    // 绘制主文本
                     ctx.DrawText(cardName, nameFont, textColor, new PointF(0f, 0f));
                     ctx.SetDrawingTransform(Matrix3x2.Identity);
                 });
@@ -316,7 +297,7 @@ namespace Yugioh
                 Console.WriteLine($"绘制卡名失败: {ex.Message}");
             }
         }
-        // 计算卡名的有效长度（考虑到英文字符通常比中文字符窄）
+        // 计算卡名的有效长度
         private static float CalculateEffectiveLength(string cardName)
         {
             float effectiveLength = 0;
@@ -343,7 +324,7 @@ namespace Yugioh
             return effectiveLength;
         }
         
-        // 添加攻防值图像
+        // 添加攻守条
         private static void AddAtkDefImage(Image image, Card card, string assetFigureDir)
         {
             try
@@ -362,38 +343,36 @@ namespace Yugioh
                             int posY = 1854; 
                             image.Mutate(ctx => ctx.DrawImage(atkDefImage, new Point(posX, posY), 1f));
                         }
+                        // 添加攻击力和守备力（包括LINK值）
+                        AddAtkDefValues(image, card);
                     }
                     else
                     {
-                        Console.WriteLine($"错误: 未找到攻防图像文件: {atkDefImagePath}");
+                        Console.WriteLine($"错误: 未找到攻守条文件: {atkDefImagePath}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加攻防图像失败: {ex.Message}");
+                Console.WriteLine($"添加攻守条失败: {ex.Message}");
             }
         }
         
-        // 添加属性图像
+        // 添加属性图
         private static void AddAttributeImage(Image image, Card card, string assetFigureDir)
         {
             try
             {
-                // 检查卡片是否有属性
                 if (string.IsNullOrEmpty(card.Attribute))
                 {
                     return;
                 }
-                // 直接根据attribute属性确定图像
                 string attributeImageName = $"attribute-{card.Attribute.ToLower()}.png";
                 string attributeImagePath = Path.Combine(assetFigureDir, attributeImageName);
-                
                 if (File.Exists(attributeImagePath))
                 {
                     using (var attributeImage = Image.Load(attributeImagePath))
                     {
-                        // 指定贴图位置为1217,167（左上角对齐）
                         int posX = 1170;
                         int posY = 95;
                         image.Mutate(ctx => ctx.DrawImage(attributeImage, new Point(posX, posY), 1f));
@@ -435,7 +414,6 @@ namespace Yugioh
                 int rightScaleX = 1230;
                 int rightScaleY = 1415;
                 string scaleText = card.PendulumScale.Value.ToString();
-                // 如果是两位数（10-13），则向左移动位置以确保对齐
                 int offsetX = 0;
                 if (scaleText.Length > 1)
                 {
@@ -460,6 +438,42 @@ namespace Yugioh
         private static bool IsSpecialSeparator(char c)
         {
             return c == '·' || c == '-' || c == '・' || c == '_' || c == '=' || c == '+' || c == '/';
+        }
+        
+        // 添加攻击力数值
+        private static void AddAtkDefValues(Image image, Card card)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(card.Atk))
+                {
+                    return;
+                }
+
+                string fontPath = Path.Combine("asset", "font", "special", "ygo-atk-def.ttf");
+                if (!File.Exists(fontPath))
+                {
+                    Console.WriteLine($"错误: 未找到攻击力字体文件: {fontPath}");
+                    return;
+                }
+                var fontCollection = new FontCollection();
+                var fontFamily = fontCollection.Add(fontPath);
+                var font = fontFamily.CreateFont(60f, FontStyle.Bold);
+                var color = Color.Black;
+                string atkText = card.Atk;
+                if (atkText == "-1")
+                {
+                    atkText = "?";
+                }
+                
+                float atkX = 870f;
+                float atkY = 1857f;
+                image.Mutate(ctx => ctx.DrawText(atkText, font, color, new PointF(atkX, atkY)));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"添加攻击力数值失败: {ex.Message}");
+            }
         }
     }
 }

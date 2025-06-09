@@ -8,9 +8,12 @@
         "x": 70,
         "y": 354
     },
-    "ATK-DEF/LINK": {
+    "ATK-DEF/LINK-Pic": {
         "x": 106,
         "y": 1854
+    },
+    "ATK-DEF/LINK-Num": {
+        "ATK": {"x":870,"y":1857},"DEF":{"x":,"y":}
     },
     "Attribute": {
         "x": 1217,
