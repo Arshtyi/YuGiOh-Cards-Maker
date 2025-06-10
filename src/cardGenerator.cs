@@ -14,6 +14,7 @@ namespace Yugioh
     public static class CardGenerator
     {
         private static readonly RectangleF CardNameArea = new RectangleF(89.86f, 96.10f, 1113.00f - 89.86f, 224.71f - 96.10f);
+        private static readonly RectangleF PendulumDescriptionArea = new RectangleF(220f, 1300f, 1180f - 220f, 1500f - 1300f);
         private static readonly string FontPath = Path.Combine("asset", "font", "sc", "XinHuaKaiTi.ttf");
         private static Font? nameBlackFont;
         private static Font? nameWhiteFont;
@@ -173,6 +174,8 @@ namespace Yugioh
                         AddCardID(image, card);
                         // 魔法卡/陷阱卡类型文字
                         AddCardTypeText(image, card);
+                        // 灵摆效果
+                        DrawPendulumDescription(image, card);
                         image.Save(outPath);
                     }
                     Interlocked.Increment(ref processed);
@@ -206,12 +209,12 @@ namespace Yugioh
                 }
                 else if (effectiveLength <= 20)
                 {
-                    fontSize = 62f;
+                    fontSize = 80f;
                     posYOffset = 41f;
                 }
                 else if (effectiveLength <= 24)
                 {
-                    fontSize = 58f;
+                    fontSize = 60f;
                     posYOffset = 43f;
                 }
                 else
@@ -497,13 +500,15 @@ namespace Yugioh
             }
         }
         
-        // 判断是否为拉丁字符（英文字母、数字、常见标点等）
+        // 拉丁字符
         private static bool IsLatinCharacter(char c)
         {
-            // ASCII 码范围（基本拉丁字符集）
+            if (c == '「' || c == '」' || c == '『' || c == '』' || c == '"' || c == '"' || c == '\'' || c == '\'')
+                return false;
+            // ASCII
             return c <= 127;
         }
-        // 判断是否为特殊分隔符
+        // 特殊分隔符
         private static bool IsSpecialSeparator(char c)
         {
             return c == '·' || c == '-' || c == '・' || c == '_' || c == '=' || c == '+' || c == '/';
@@ -525,7 +530,7 @@ namespace Yugioh
                 var atkDefFontFamily = fontCollection.Add(atkDefFontPath);
                 var atkDefFont = atkDefFontFamily.CreateFont(60f, FontStyle.Bold);
                 var color = Color.Black;
-                string atkText = card.Atk;
+                string atkText = card.Atk ?? "?";
                 if (atkText == "-1")
                 {
                     atkText = "?";
@@ -534,7 +539,7 @@ namespace Yugioh
                 float atkY = 1857f;
                 image.Mutate(ctx => ctx.DrawText(atkText, atkDefFont, color, new PointF(atkX, atkY)));
                 bool isLinkMonster = card.LinkValue.HasValue && card.LinkValue.Value > 0;
-                if (isLinkMonster) 
+                if (isLinkMonster && card.LinkValue.HasValue) 
                 {
                     string linkText = card.LinkValue.Value.ToString();
                     float linkX = 1230f;
@@ -750,6 +755,143 @@ namespace Yugioh
             {
                 Console.WriteLine($"添加Link箭头标记失败: {ex.Message}");
             }
+        }
+        // 灵摆效果
+        private static void DrawPendulumDescription(Image image, Card card)
+        {
+            try
+            {
+                var frameType = card.FrameType?.ToLower() ?? "";
+                if (!frameType.Contains("pendulum") || string.IsNullOrEmpty(card.PendulumDescription))
+                {
+                    return;
+                }
+                float fontSize = 40f;
+                var color = Color.Black;
+                string pendulumText = card.PendulumDescription;
+                string[] originalLines = pendulumText.Split('\n');
+                float baseMaxEffectiveLength = 24f;
+                int totalEffectiveLines = 0;
+                foreach (string line in originalLines)
+                {
+                    if (string.IsNullOrEmpty(line))
+                    {
+                        totalEffectiveLines += 1;
+                        continue;
+                    }
+                    float effectiveLength = CalculateEffectiveLength(line);
+                    if (effectiveLength > baseMaxEffectiveLength)
+                    {
+                        List<string> subLines = SplitLongLine(line, baseMaxEffectiveLength);
+                        totalEffectiveLines += subLines.Count;
+                    }
+                    else
+                    {
+                        totalEffectiveLines += 1;
+                    }
+                }
+                
+                float posX = PendulumDescriptionArea.X;
+                float posY = PendulumDescriptionArea.Y;
+                float maxWidth = PendulumDescriptionArea.Width;
+                float maxHeight = PendulumDescriptionArea.Height;
+                float lineHeight;
+                float currentMaxEffectiveLength = baseMaxEffectiveLength;
+                if (totalEffectiveLines > 4)
+                {
+                    fontSize = 35f;
+                    lineHeight = fontSize * 1.15f;
+                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 35f);
+                }
+                else
+                {
+                    lineHeight = fontSize * 1.2f;
+                }
+                
+                Font descFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
+                var textOptions = new TextOptions(descFont)
+                {
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                };
+                
+                int currentLine = 0;
+                foreach (string line in originalLines)
+                {
+                    if (string.IsNullOrEmpty(line))
+                    {
+                        posY += lineHeight / 2;
+                        currentLine++;
+                        continue;
+                    }
+                    
+                    float effectiveLength = CalculateEffectiveLength(line);
+                    if (effectiveLength > currentMaxEffectiveLength)
+                    {
+                        List<string> subLines = SplitLongLine(line, currentMaxEffectiveLength);
+                        foreach (string subLine in subLines)
+                        {
+                            image.Mutate(ctx => ctx.DrawText(subLine, descFont, color, new PointF(posX, posY)));
+                            posY += lineHeight;
+                            currentLine++;
+                        }
+                    }
+                    else
+                    {
+                        image.Mutate(ctx => ctx.DrawText(line, descFont, color, new PointF(posX, posY)));
+                        posY += lineHeight;
+                        currentLine++;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"绘制灵摆效果描述失败: {ex.Message}");
+            }
+        }
+        // 分割长文本行
+        private static List<string> SplitLongLine(string line, float maxEffectiveLength)
+        {
+            List<string> result = new List<string>();
+            if (CalculateEffectiveLength(line) <= maxEffectiveLength)
+            {
+                result.Add(line);
+                return result;
+            }
+            string currentLine = "";
+            float currentLineLength = 0f;
+            foreach (char c in line)
+            {
+                float charLength = 0f;
+                if (IsLatinCharacter(c))
+                {
+                    charLength = 0.5f;
+                }
+                else if (IsSpecialSeparator(c))
+                {
+                    charLength = 0.7f;
+                }
+                else
+                {
+                    charLength = 1.0f;
+                }
+                if (currentLineLength + charLength > maxEffectiveLength)
+                {
+                    result.Add(currentLine);
+                    currentLine = c.ToString();
+                    currentLineLength = charLength;
+                }
+                else
+                {
+                    currentLine += c;
+                    currentLineLength += charLength;
+                }
+            }
+            if (!string.IsNullOrEmpty(currentLine))
+            {
+                result.Add(currentLine);
+            }
+            return result;
         }
     }
 }
