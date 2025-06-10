@@ -52,3 +52,5 @@ dotnet build && dotnet run
 
 -   [YGOProDeck](https://ygoprodeck.com/)
 -   [百鸽](https://ygocdb.com/)
+-   [MyCard](https://github.com/mycard)
+-   [canvas-yugioh-card](https://github.com/kooriookami/yugioh-card)
