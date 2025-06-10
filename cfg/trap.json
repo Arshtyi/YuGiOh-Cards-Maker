@@ -2,9 +2,9 @@
     "name": "陷阱",
     "id": 12345679,
     "description": "效果",
-    "cardtype": "trap",
+    "cardType": "trap",
     "frameType": "trap",
     "attribute": "trap",
     "race": "normal",
-    "cardimage": "example.jpg"
+    "cardImage": "example.jpg"
 }

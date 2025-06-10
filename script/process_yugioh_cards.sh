@@ -204,7 +204,7 @@ for card in prodeck_data.get('data', []):
             if card_id in id_to_description:
                 result[card_id]["description"] = id_to_description[card_id]
             if card_type:
-                result[card_id]["cardtype"] = card_type
+                result[card_id]["cardType"] = card_type
                 if card_type == 'monster':
                     if card_id in id_to_attribute:
                         result[card_id]["attribute"] = id_to_attribute[card_id]
@@ -220,14 +220,14 @@ for card in prodeck_data.get('data', []):
                         result[card_id]["frameType"] = frame_type
                         if 'pendulum' in frame_type:
                             if card_id in id_to_pendulum_description:
-                                result[card_id]["pendulum-description"] = id_to_pendulum_description[card_id]
+                                result[card_id]["pendulumDescription"] = id_to_pendulum_description[card_id]
                             if card_id in id_to_scale:
                                 result[card_id]["scale"] = id_to_scale[card_id]
                         if frame_type == 'link' or 'link' in frame_type:
                             if card_id in id_to_linkval:
-                                result[card_id]["linkval"] = id_to_linkval[card_id]
+                                result[card_id]["linkVal"] = id_to_linkval[card_id]
                             if card_id in id_to_linkmarkers:
-                                result[card_id]["linkmarkers"] = id_to_linkmarkers[card_id]
+                                result[card_id]["linkMarkers"] = id_to_linkmarkers[card_id]
                     if 'typeline' in card:
                         typeline = card.get('typeline', [])
                         if typeline:
@@ -250,7 +250,7 @@ for card in prodeck_data.get('data', []):
             if 'card_images' in card and card['card_images'] and 'image_url_cropped' in card['card_images'][0]:
                 image_url = card['card_images'][0]['image_url_cropped']
                 image_filename = image_url.split('/')[-1]
-                result[card_id]["cardimage"] = image_filename
+                result[card_id]["cardImage"] = image_filename
         else:
             print(f"卡片ID {card_id} 没有找到对应的中文名称，跳过该卡片")
 print(f"处理完成，共生成{len(result)}张卡的数据")

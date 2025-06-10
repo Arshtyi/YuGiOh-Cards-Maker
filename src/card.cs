@@ -9,13 +9,13 @@ namespace Yugioh
         public string Name { get; set; } = string.Empty;
         [JsonPropertyName("frameType")]
         public string? FrameType { get; set; }
-        [JsonPropertyName("cardtype")]
+        [JsonPropertyName("cardType")]
         public string? CardType { get; set; }
-        [JsonPropertyName("cardimage")]
+        [JsonPropertyName("cardImage")]
         public string? CardImage { get; set; }
-        [JsonPropertyName("linkval")]
+        [JsonPropertyName("linkVal")]
         public int? LinkValue { get; set; }
-        [JsonPropertyName("linkmarkers")]
+        [JsonPropertyName("linkMarkers")]
         public List<string>? LinkMarkers { get; set; }
         [JsonPropertyName("attribute")]
         public string? Attribute { get; set; }

@@ -2,12 +2,12 @@
     "name": "怪兽",
     "id": 12345680,
     "description": "怪兽效果",
-    "cardtype": "monster",
+    "cardType": "monster",
     "attribute": "light",
     "atk": 1500,
     "def": 1200,
     "level": 4,
     "frameType": "effect",
     "typeline": "【种族 / 效果】",
-    "cardimage": "example.jpg"
+    "cardImage": "example.jpg"
 }
