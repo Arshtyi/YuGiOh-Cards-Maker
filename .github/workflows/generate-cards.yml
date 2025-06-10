@@ -1,0 +1,84 @@
+name: Generate YuGiOh Cards
+
+on:
+    schedule:
+        - cron: "0 4 * * 4"
+    push:
+        branches:
+            - main
+
+jobs:
+    generate-cards:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+              with:
+                  fetch-depth: 0
+
+            - name: Install ZSH and other dependencies
+              run: sudo apt-get update && sudo apt-get install -y zsh wget curl unzip jq imagemagick dotnet-sdk-8.0 tar xz-utils
+
+            - name: Make shell scripts executable
+              run: |
+                  chmod +x ./YuGiOh-Cards-Maker.sh
+                  chmod +x ./script/process_yugioh_cards.sh
+
+            - name: Run YuGiOh-Cards-Maker script
+              run: |
+                  zsh ./YuGiOh-Cards-Maker.sh
+              env:
+                  GITHUB_ACTIONS: true
+
+            - name: Create directory for tarballs
+              run: mkdir -p ./tarballs
+
+            - name: Pack PNG files into tarballs
+              run: |
+                  png_files=($(find ./figure -name "*.png" -type f | sort))
+                  total_files=${#png_files[@]}
+                  if [ $total_files -eq 0 ]; then
+                    echo "No PNG files found in figure directory"
+                    exit 1
+                  fi
+                  batch_size=1000
+                  batch_count=$(( (total_files + batch_size - 1) / batch_size ))
+                  for ((i=0; i<batch_count; i++)); do
+                    start_idx=$((i * batch_size))
+                    end_idx=$(( (i + 1) * batch_size - 1 ))
+                    
+                    if [ $end_idx -ge $total_files ]; then
+                      end_idx=$((total_files - 1))
+                    fi
+
+                    mkdir -p ./tmp_batch
+                    for ((j=start_idx; j<=end_idx; j++)); do
+                      cp "${png_files[j]}" ./tmp_batch/
+                    done
+                    tar -cJf "./tarballs/cards_${i}.tar.xz" -C ./tmp_batch .
+                    rm -rf ./tmp_batch
+                    echo "Created tarball cards_${i}.tar.xz with files ${start_idx} to ${end_idx}"
+                  done
+
+            - name: Delete existing release
+              uses: dev-drprasad/delete-tag-and-release@v0.2.1
+              with:
+                  tag_name: latest
+                  delete_release: true
+                  repo: ${{ github.repository }}
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              continue-on-error: true
+
+            - name: Create/Update release
+              id: create_release
+              uses: softprops/action-gh-release@v1
+              with:
+                  tag_name: latest
+                  name: Latest Cards
+                  body: "自动生成的卡片"
+                  files: ./tarballs/*.tar.xz
+                  draft: false
+                  prerelease: false
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

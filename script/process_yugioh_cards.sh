@@ -4,15 +4,17 @@ cd "$SCRIPT_DIR/.." || exit 1
 TMP_DIR="tmp"
 rm -rf "$TMP_DIR"
 mkdir -p "$TMP_DIR"
-current_fd_limit=$(ulimit -n)
-if [ "$current_fd_limit" -lt 4096 ]; then
-    echo "增加文件描述符限制到4096（原限制：$current_fd_limit）"
-    ulimit -n 4096 || echo "警告: 无法增加文件描述符限制，可能需要root权限"
-fi
-current_proc_limit=$(ulimit -u)
-if [ "$current_proc_limit" -lt 4096 ]; then
-    echo "增加进程数限制到4096（原限制：$current_proc_limit）"
-    ulimit -u 4096 || echo "警告: 无法增加进程数限制，可能需要root权限"
+if [ -z "$GITHUB_ACTIONS" ]; then
+    current_fd_limit=$(ulimit -n)
+    if [ "$current_fd_limit" -lt 4096 ]; then
+        echo "增加文件描述符限制到4096（原限制：$current_fd_limit）"
+        ulimit -n 4096 || echo "警告: 无法增加文件描述符限制，可能需要root权限"
+    fi
+    current_proc_limit=$(ulimit -u)
+    if [ "$current_proc_limit" -lt 4096 ]; then
+        echo "增加进程数限制到4096（原限制：$current_proc_limit）"
+        ulimit -u 4096 || echo "警告: 无法增加进程数限制，可能需要root权限"
+    fi
 fi
 echo "正在下载ygocdb卡片数据..."
 wget -q https://ygocdb.com/api/v0/cards.zip -O "$TMP_DIR/ygocdb_cards.zip"
