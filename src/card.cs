@@ -33,5 +33,7 @@ namespace Yugioh
         public string? Race { get; set; }
         [JsonPropertyName("pendulumDescription")]
         public string? PendulumDescription { get; set; }
+        [JsonPropertyName("description")]
+        public string? Description { get; set; }
     }
 }

@@ -15,6 +15,7 @@ namespace Yugioh
     {
         private static readonly RectangleF CardNameArea = new RectangleF(89.86f, 96.10f, 1113.00f - 89.86f, 224.71f - 96.10f);
         private static readonly RectangleF PendulumDescriptionArea = new RectangleF(220f, 1300f, 1180f - 220f, 1500f - 1300f);
+        private static readonly RectangleF MonsterDescriptionArea = new RectangleF(110f, 1533f, 1283f - 110f, 1897f - 1533f);
         private static readonly string FontPath = Path.Combine("asset", "font", "sc", "XinHuaKaiTi.ttf");
         private static Font? nameBlackFont;
         private static Font? nameWhiteFont;
@@ -176,6 +177,8 @@ namespace Yugioh
                         AddCardTypeText(image, card);
                         // 灵摆效果
                         DrawPendulumDescription(image, card);
+                        // 怪兽效果
+                        DrawMonsterDescription(image, card);
                         image.Save(outPath);
                     }
                     Interlocked.Increment(ref processed);
@@ -512,6 +515,21 @@ namespace Yugioh
         private static bool IsSpecialSeparator(char c)
         {
             return c == '·' || c == '-' || c == '・' || c == '_' || c == '=' || c == '+' || c == '/';
+        }
+        // 判断是否为标点符号
+        private static bool IsPunctuation(char c)
+        {
+            // 中文标点
+            if (c == '，' || c == '。' || c == '、' || c == '：' || c == '；' || 
+                c == '！' || c == '？' || c == '）' || c == '」' || c == '』')
+                return true;
+            
+            // 英文标点
+            if (c == ',' || c == '.' || c == ':' || c == ';' || 
+                c == '!' || c == '?' || c == ')' || c == ']' || c == '}')
+                return true;
+            
+            return false;
         }
 
         // 攻击力和守备力/Link值
@@ -852,6 +870,102 @@ namespace Yugioh
             catch (Exception ex)
             {
                 Console.WriteLine($"绘制灵摆效果描述失败: {ex.Message}");
+            }
+        }
+        // 怪兽效果
+        private static void DrawMonsterDescription(Image image, Card card)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(card.Description))
+                {
+                    return;
+                }
+                float fontSize = 40f;
+                var color = Color.Black;
+                string descriptionText = card.Description;
+                string[] originalLines = descriptionText.Split('\n');
+                float baseMaxEffectiveLength = 29f; 
+                int totalEffectiveLines = 0;
+                foreach (string line in originalLines)
+                {
+                    if (string.IsNullOrEmpty(line))
+                    {
+                        totalEffectiveLines += 1;
+                        continue;
+                    }
+                    float effectiveLength = CalculateEffectiveLength(line);
+                    if (effectiveLength > baseMaxEffectiveLength)
+                    {
+                        List<string> subLines = SplitLongLine(line, baseMaxEffectiveLength);
+                        totalEffectiveLines += subLines.Count;
+                    }
+                    else
+                    {
+                        totalEffectiveLines += 1;
+                    }
+                }
+                float posX = MonsterDescriptionArea.X;
+                float posY = MonsterDescriptionArea.Y;
+                float maxWidth = MonsterDescriptionArea.Width;
+                float maxHeight = MonsterDescriptionArea.Height;
+                float lineHeight;
+                float currentMaxEffectiveLength = baseMaxEffectiveLength;
+                if (totalEffectiveLines > 10)
+                {
+                    fontSize = 30f;
+                    lineHeight = fontSize * 1.1f;
+                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 30f);
+                }
+                else if (totalEffectiveLines >= 8)
+                {
+                    fontSize = 33f;
+                    lineHeight = fontSize * 1.15f;
+                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 33f);
+                }
+                else
+                {
+                    lineHeight = fontSize * 1.2f;
+                }
+                
+                Font descFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
+                var textOptions = new TextOptions(descFont)
+                {
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                };
+                
+                int currentLine = 0;
+                foreach (string line in originalLines)
+                {
+                    if (string.IsNullOrEmpty(line))
+                    {
+                        posY += lineHeight / 2;
+                        currentLine++;
+                        continue;
+                    }
+                    float effectiveLength = CalculateEffectiveLength(line);
+                    if (effectiveLength > currentMaxEffectiveLength)
+                    {
+                        List<string> subLines = SplitLongLine(line, currentMaxEffectiveLength);
+                        foreach (string subLine in subLines)
+                        {
+                            image.Mutate(ctx => ctx.DrawText(subLine, descFont, color, new PointF(posX, posY)));
+                            posY += lineHeight;
+                            currentLine++;
+                        }
+                    }
+                    else
+                    {
+                        image.Mutate(ctx => ctx.DrawText(line, descFont, color, new PointF(posX, posY)));
+                        posY += lineHeight;
+                        currentLine++;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"绘制怪兽效果描述失败: {ex.Message}");
             }
         }
         // 分割长文本行
