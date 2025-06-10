@@ -15,6 +15,8 @@ namespace Yugioh
         public string? CardImage { get; set; }
         [JsonPropertyName("linkval")]
         public int? LinkValue { get; set; }
+        [JsonPropertyName("linkmarkers")]
+        public List<string>? LinkMarkers { get; set; }
         [JsonPropertyName("attribute")]
         public string? Attribute { get; set; }
         [JsonPropertyName("scale")]

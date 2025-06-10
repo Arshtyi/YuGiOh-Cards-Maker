@@ -51,7 +51,7 @@ namespace Yugioh
                 Console.WriteLine($"错误: 未找到卡片数据文件: {cardsJsonPath}");
                 return;
             }
-            // 清空输出目录
+            // 清空输出
             if (Directory.Exists(outputFigureDir))
             {
                 Directory.CreateDirectory(outputFigureDir);
@@ -83,10 +83,8 @@ namespace Yugioh
                 Console.WriteLine("错误: 卡片数据解析失败");
                 return;
             }
-            
             var allValidCards = dict.Values.Where(c => !string.IsNullOrEmpty(c.FrameType)).ToList();
             List<Card> cardsToProcess;
-            
             if (maxCount < allValidCards.Count)
             {
                 cardsToProcess = allValidCards.Take(maxCount).ToList();
@@ -109,7 +107,6 @@ namespace Yugioh
                 {
                     var frameType = card.FrameType?.ToLower() ?? "normal";
                     string? frameFile = null;
-                    
                     string exactFramePath = Path.Combine(assetFigureDir, $"card-{frameType}.png");
                     if (File.Exists(exactFramePath))
                     {
@@ -117,18 +114,18 @@ namespace Yugioh
                     }
                     if (frameFile == null)
                     {
-                        Console.WriteLine($"错误: 无法找到卡框文件，卡片ID: {card.Id}, 名称: {card.Name}, 框架类型: {frameType}");
+                        Console.WriteLine($"错误: 无法找到卡框，卡片ID: {card.Id}, 名称: {card.Name}, 框架类型: {frameType}");
                         Interlocked.Increment(ref failed);
                         return;
                     }
                     var outPath = Path.Combine(outputFigureDir, $"{card.Id}.png");
                     using (var image = Image.Load(frameFile))
                     {
-                        // 添加属性图
+                        // 属性
                         AddAttributeImage(image, card, assetFigureDir);
-                        // 添加卡图
+                        // 卡图
                         AddCardImage(image, card, "tmp/figure");
-                        // 如果是灵摆卡片，覆盖灵摆框
+                        // 灵摆卡->灵摆框
                         if (frameType.Contains("pendulum"))
                         {
                             string pendulumMaskPath = Path.Combine(assetFigureDir, "card-mask-pendulum.png");
@@ -142,19 +139,39 @@ namespace Yugioh
                                 }
                             }
                         }
-                        // 添加攻守条
+                        // 非灵摆卡->普通框
+                        else
+                        {
+                            string maskPath = Path.Combine(assetFigureDir, "card-mask.png");
+                            if (File.Exists(maskPath))
+                            {
+                                using (var cardMask = Image.Load(maskPath))
+                                {
+                                    int maskX = 125;
+                                    int maskY = 322;
+                                    image.Mutate(ctx => ctx.DrawImage(cardMask, new Point(maskX, maskY), 1f));
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine($"警告: 未找到卡框文件: {maskPath}");
+                            }
+                        }
+                        // 攻守条
                         AddAtkDefImage(image, card, assetFigureDir);
-                        // 添加灵摆刻度
+                        // 灵摆刻度
                         AddPendulumScale(image, card);
-                        // 添加星级/阶级图标
+                        // 星级/阶级图标
                         AddLevelOrRank(image, card, assetFigureDir);
+                        // Link箭头
+                        AddLinkArrows(image, card, assetFigureDir);
                         bool isXyzMonster = frameType.Contains("xyz");
                         bool isSpellOrTrap = card.CardType?.ToLower() == "spell" || card.CardType?.ToLower() == "trap";
                         bool isSpecialCard = isXyzMonster || isSpellOrTrap;
                         DrawCardName(image, card.Name, isSpecialCard);
-                        // 添加卡片ID
+                        // ID
                         AddCardID(image, card);
-                        // 添加魔法卡/陷阱卡类型文字
+                        // 魔法卡/陷阱卡类型文字
                         AddCardTypeText(image, card);
                         image.Save(outPath);
                     }
@@ -170,12 +187,10 @@ namespace Yugioh
                     Interlocked.Increment(ref failed);
                 }
             });
-            
             Console.WriteLine($"卡片生成完成！成功: {processed}, 失败: {failed}");
             Console.WriteLine($"输出目录: {Path.GetFullPath(outputFigureDir)}");
         }
-        
-        // 绘制卡名 ，使用动态字体大小适配长卡名
+        // 绘制卡名 
         private static void DrawCardName(Image image, string cardName, bool isSpecialCard)
         {
             try
@@ -302,7 +317,7 @@ namespace Yugioh
                 Console.WriteLine($"绘制卡名失败: {ex.Message}");
             }
         }
-        // 计算卡名的有效长度
+        // 计算卡名有效长度
         private static float CalculateEffectiveLength(string cardName)
         {
             float effectiveLength = 0;
@@ -328,7 +343,6 @@ namespace Yugioh
             
             return effectiveLength;
         }
-        
         // 添加攻守条
         private static void AddAtkDefImage(Image image, Card card, string assetFigureDir)
         {
@@ -348,7 +362,7 @@ namespace Yugioh
                             int posY = 1854; 
                             image.Mutate(ctx => ctx.DrawImage(atkDefImage, new Point(posX, posY), 1f));
                         }
-                        // 添加攻击力和守备力（包括LINK值）
+                        // 攻击力和守备力/Link值
                         AddAtkDefValues(image, card);
                     }
                     else
@@ -362,8 +376,7 @@ namespace Yugioh
                 Console.WriteLine($"添加攻守条失败: {ex.Message}");
             }
         }
-        
-        // 添加属性图
+        // 属性
         private static void AddAttributeImage(Image image, Card card, string assetFigureDir)
         {
             try
@@ -393,8 +406,7 @@ namespace Yugioh
                 Console.WriteLine($"添加属性图像失败: {ex.Message}");
             }
         }
-        
-        // 添加灵摆刻度
+        // 灵摆刻度
         private static void AddPendulumScale(Image image, Card card)
         {
             try
@@ -433,7 +445,7 @@ namespace Yugioh
             }
         }
         
-        // 添加星级/阶级图标
+        // 星级/阶级
         private static void AddLevelOrRank(Image image, Card card, string assetFigureDir)
         {
             try
@@ -452,11 +464,10 @@ namespace Yugioh
                     Console.WriteLine($"错误: 未找到星级/阶级图标文件: {iconFilePath}");
                     return;
                 }
-                // 最右边一个星级图标的右上角坐标
+                // 最右边一个图标的右上角坐标
                 int rightTopX = 1279;
-                int rightTopY = 271;
+                int rightTopY = 250;
                 int iconSpacing = 0; 
-                
                 using (var levelIcon = Image.Load(iconFilePath))
                 {
                     int iconWidth = levelIcon.Width;
@@ -484,21 +495,22 @@ namespace Yugioh
         {
             return c == '·' || c == '-' || c == '・' || c == '_' || c == '=' || c == '+' || c == '/';
         }
-        
-        // 添加攻击力和守备力/链接值数值
+
+        // 攻击力和守备力/Link值
         private static void AddAtkDefValues(Image image, Card card)
         {
             try
             {
-                string fontPath = Path.Combine("asset", "font", "special", "ygo-atk-def.ttf");
-                if (!File.Exists(fontPath))
+                string atkDefFontPath = Path.Combine("asset", "font", "special", "ygo-atk-def.ttf");
+                string linkFontPath = Path.Combine("asset", "font", "special", "ygo-link.ttf");
+                if (!File.Exists(atkDefFontPath))
                 {
-                    Console.WriteLine($"错误: 未找到攻击力/守备力字体文件: {fontPath}");
+                    Console.WriteLine($"错误: 未找到攻击力/守备力字体文件: {atkDefFontPath}");
                     return;
                 }
                 var fontCollection = new FontCollection();
-                var fontFamily = fontCollection.Add(fontPath);
-                var font = fontFamily.CreateFont(60f, FontStyle.Bold);
+                var atkDefFontFamily = fontCollection.Add(atkDefFontPath);
+                var atkDefFont = atkDefFontFamily.CreateFont(60f, FontStyle.Bold);
                 var color = Color.Black;
                 string atkText = card.Atk;
                 if (atkText == "-1")
@@ -507,14 +519,24 @@ namespace Yugioh
                 }
                 float atkX = 870f;
                 float atkY = 1857f;
-                image.Mutate(ctx => ctx.DrawText(atkText, font, color, new PointF(atkX, atkY)));
+                image.Mutate(ctx => ctx.DrawText(atkText, atkDefFont, color, new PointF(atkX, atkY)));
                 bool isLinkMonster = card.LinkValue.HasValue && card.LinkValue.Value > 0;
                 if (isLinkMonster) 
                 {
                     string linkText = card.LinkValue.Value.ToString();
-                    float linkX = 1235f;
-                    float linkY = 1857f;
-                    image.Mutate(ctx => ctx.DrawText(linkText, font, color, new PointF(linkX, linkY)));
+                    float linkX = 1230f;
+                    float linkY = 1890f;
+                    if (File.Exists(linkFontPath))
+                    {
+                        var linkFontFamily = fontCollection.Add(linkFontPath);
+                        var linkFont = linkFontFamily.CreateFont(50f, FontStyle.Bold);
+                        image.Mutate(ctx => ctx.DrawText(linkText, linkFont, color, new PointF(linkX, linkY)));
+                    }
+                    else
+                    {
+                        Console.WriteLine($"警告: 未找到链接值字体文件: {linkFontPath}，使用默认字体");
+                        image.Mutate(ctx => ctx.DrawText(linkText, atkDefFont, color, new PointF(linkX, linkY)));
+                    }
                 }
                 else if (!string.IsNullOrEmpty(card.Def))
                 {
@@ -525,15 +547,15 @@ namespace Yugioh
                     }
                     float defX = 1156f;
                     float defY = 1857f;
-                    image.Mutate(ctx => ctx.DrawText(defText, font, color, new PointF(defX, defY)));
+                    image.Mutate(ctx => ctx.DrawText(defText, atkDefFont, color, new PointF(defX, defY)));
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加攻击力/守备力/链接值数值失败: {ex.Message}");
+                Console.WriteLine($"添加攻击力/守备力/链接值失败: {ex.Message}");
             }
         }
-        // 添加卡片ID
+        // 卡片ID
         private static void AddCardID(Image image, Card card)
         {
             try
@@ -545,7 +567,6 @@ namespace Yugioh
                     Console.WriteLine($"错误: 未找到卡片ID字体文件: {fontPath}");
                     return;
                 }
-                
                 var fontCollection = new FontCollection();
                 var fontFamily = fontCollection.Add(fontPath);
                 var font = fontFamily.CreateFont(50f, FontStyle.Regular); 
@@ -557,11 +578,10 @@ namespace Yugioh
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加卡片ID失败: {ex.Message}");
+                Console.WriteLine($"添加ID失败: {ex.Message}");
             }
         }
-        
-        // 添加卡图
+        // 卡图
         private static void AddCardImage(Image image, Card card, string figureDir)
         {
             try
@@ -590,7 +610,7 @@ namespace Yugioh
             }
         }
         
-        // 添加魔法卡/陷阱卡字样及icon
+        // 魔法卡/陷阱卡字样及icon
         private static void AddCardTypeText(Image image, Card card)
         {
             try
@@ -612,7 +632,7 @@ namespace Yugioh
                 var fontFamily = fontCollection.Add(fontPath);
                 var font = fontFamily.CreateFont(100f, FontStyle.Regular);
                 var color = Color.Black;
-                float posY = 270f;
+                float posY = 250f;
                 float startX = hasIcon ? 750f : 840f;
                 string prefixText = isSpell ? "【魔法卡" : "【陷阱卡";
                 image.Mutate(ctx => ctx.DrawText(prefixText, font, color, new PointF(startX, posY)));
@@ -631,13 +651,13 @@ namespace Yugioh
                         using (var iconImage = Image.Load(iconPath))
                         {
                             int iconX = 1160;
-                            int iconY = 275;
+                            int iconY = 255;
                             float scale = 1.1f;
                             int newWidth = (int)(iconImage.Width * scale);
                             int newHeight = (int)(iconImage.Height * scale);
                             var resizedIcon = iconImage.Clone(ctx => ctx.Resize(newWidth, newHeight));
                             image.Mutate(ctx => ctx.DrawImage(resizedIcon, new Point(iconX, iconY), 1f));
-                            // 绘制后半部分 "】"
+                            // 后半部分 "】"
                             float suffixX = iconX + newWidth;
                             image.Mutate(ctx => ctx.DrawText("】", font, color, new PointF(suffixX, posY)));
                         }
@@ -657,6 +677,65 @@ namespace Yugioh
             catch (Exception ex)
             {
                 Console.WriteLine($"添加卡片类型文字失败: {ex.Message}");
+            }
+        }
+        // Link箭头
+        private static void AddLinkArrows(Image image, Card card, string assetFigureDir)
+        {
+            try
+            {
+                var frameType = card.FrameType?.ToLower() ?? "";
+                if (frameType != "link" || card.LinkMarkers == null || card.LinkMarkers.Count == 0)
+                {
+                    return;
+                }
+                var allDirections = new List<string>
+                {
+                    "top-left", "top", "top-right",
+                    "left", "right",
+                    "bottom-left", "bottom", "bottom-right"
+                };
+                var arrowPositions = new Dictionary<string, Point>
+                {
+                    { "top-left", new Point(100, 300) },
+                    { "top", new Point(570, 280) },
+                    { "top-right", new Point(1140, 300) },
+                    { "left", new Point(80, 760) },
+                    { "right", new Point(1230, 760) },
+                    { "bottom-left", new Point(100, 1335) },
+                    { "bottom", new Point(570, 1427) },
+                    { "bottom-right", new Point(1140, 1335) }
+                };
+                var cardLinkMarkers = card.LinkMarkers.Select(m => m.ToLower()).ToList();
+                foreach (var direction in allDirections)
+                {
+                    bool isActive = cardLinkMarkers.Contains(direction);
+                    string arrowFileName = $"arrow-{direction}-{(isActive ? "on" : "off")}.png";
+                    string arrowFilePath = Path.Combine(assetFigureDir, arrowFileName);
+                    
+                    if (File.Exists(arrowFilePath))
+                    {
+                        using (var arrowImage = Image.Load(arrowFilePath))
+                        {
+                            if (arrowPositions.TryGetValue(direction, out Point position))
+                            {
+                                image.Mutate(ctx => ctx.DrawImage(arrowImage, position, 1f));
+                            }
+                            else
+                            {
+                                Console.WriteLine($"警告: 未找到箭头位置配置: {direction}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"警告: 未找到箭头图片: {arrowFilePath}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"添加Link箭头标记失败: {ex.Message}");
             }
         }
     }
