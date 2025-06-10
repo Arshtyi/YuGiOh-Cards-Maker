@@ -464,17 +464,30 @@ namespace Yugioh
                     Console.WriteLine($"错误: 未找到星级/阶级图标文件: {iconFilePath}");
                     return;
                 }
-                // 最右边一个图标的右上角坐标
-                int rightTopX = 1279;
-                int rightTopY = 250;
                 int iconSpacing = 0; 
                 using (var levelIcon = Image.Load(iconFilePath))
                 {
                     int iconWidth = levelIcon.Width;
-                    for (int i = 0; i < card.Level.Value; i++)
+                    int posY = 250;
+                    if (isXyz)
                     {
-                        int posX = rightTopX - (i * (iconWidth + iconSpacing));
-                        image.Mutate(ctx => ctx.DrawImage(levelIcon, new Point(posX - iconWidth, rightTopY), 1f));
+                        // 阶级从左边开始
+                        int leftStartX = 140;
+                        for (int i = 0; i < card.Level.Value; i++)
+                        {
+                            int posX = leftStartX + (i * (iconWidth + iconSpacing));
+                            image.Mutate(ctx => ctx.DrawImage(levelIcon, new Point(posX, posY), 1f));
+                        }
+                    }
+                    else
+                    {
+                        // 星级从右边开始
+                        int rightTopX = 1279;
+                        for (int i = 0; i < card.Level.Value; i++)
+                        {
+                            int posX = rightTopX - (i * (iconWidth + iconSpacing));
+                            image.Mutate(ctx => ctx.DrawImage(levelIcon, new Point(posX - iconWidth, posY), 1f));
+                        }
                     }
                 }
             }
