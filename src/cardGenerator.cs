@@ -797,7 +797,12 @@ namespace Yugioh
                 float maxHeight = PendulumDescriptionArea.Height;
                 float lineHeight;
                 float currentMaxEffectiveLength = baseMaxEffectiveLength;
-                if (totalEffectiveLines > 4)
+                if (totalEffectiveLines > 5)
+                {
+                    fontSize = 30f;
+                    lineHeight = fontSize * 1.1f;
+                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 30f);
+                }else if (totalEffectiveLines > 4)
                 {
                     fontSize = 35f;
                     lineHeight = fontSize * 1.15f;
