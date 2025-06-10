@@ -15,7 +15,7 @@ namespace Yugioh
     {
         private static readonly RectangleF CardNameArea = new RectangleF(89.86f, 96.10f, 1113.00f - 89.86f, 224.71f - 96.10f);
         private static readonly RectangleF PendulumDescriptionArea = new RectangleF(220f, 1300f, 1180f - 220f, 1500f - 1300f);
-        private static readonly RectangleF MonsterDescriptionArea = new RectangleF(110f, 1533f, 1283f - 110f, 1897f - 1533f);
+        private static readonly RectangleF CardDescriptionArea = new RectangleF(110f, 1533f, 1283f - 110f, 1897f - 1533f);
         private static readonly string FontPath = Path.Combine("asset", "font", "sc", "XinHuaKaiTi.ttf");
         private static Font? nameBlackFont;
         private static Font? nameWhiteFont;
@@ -177,8 +177,8 @@ namespace Yugioh
                         AddCardTypeText(image, card);
                         // 灵摆效果
                         DrawPendulumDescription(image, card);
-                        // 怪兽效果
-                        DrawMonsterDescription(image, card);
+                        // 卡牌效果
+                        DrawCardDescription(image, card);
                         image.Save(outPath);
                     }
                     Interlocked.Increment(ref processed);
@@ -872,8 +872,8 @@ namespace Yugioh
                 Console.WriteLine($"绘制灵摆效果描述失败: {ex.Message}");
             }
         }
-        // 怪兽效果
-        private static void DrawMonsterDescription(Image image, Card card)
+        // 卡牌效果
+        private static void DrawCardDescription(Image image, Card card)
         {
             try
             {
@@ -884,6 +884,11 @@ namespace Yugioh
                 float fontSize = 40f;
                 var color = Color.Black;
                 string descriptionText = card.Description;
+                bool isMonsterCard = card.CardType?.ToLower() == "monster";
+                if (isMonsterCard && !string.IsNullOrEmpty(card.Typeline))
+                {
+                    descriptionText = card.Typeline + "\n" + descriptionText;
+                }
                 string[] originalLines = descriptionText.Split('\n');
                 float baseMaxEffectiveLength = 29f; 
                 int totalEffectiveLines = 0;
@@ -905,36 +910,45 @@ namespace Yugioh
                         totalEffectiveLines += 1;
                     }
                 }
-                float posX = MonsterDescriptionArea.X;
-                float posY = MonsterDescriptionArea.Y;
-                float maxWidth = MonsterDescriptionArea.Width;
-                float maxHeight = MonsterDescriptionArea.Height;
+                var frameType = card.FrameType?.ToLower() ?? "";
+                bool isPendulum = frameType.Contains("pendulum");
+                bool isSpellOrTrap = card.CardType?.ToLower() == "spell" || card.CardType?.ToLower() == "trap";
+                float posX = CardDescriptionArea.X;
+                float posY = CardDescriptionArea.Y;
+                float maxWidth = CardDescriptionArea.Width;
+                float maxHeight;
+                if (isSpellOrTrap) {
+                    maxHeight = 1897f - CardDescriptionArea.Y;
+                } else if (isPendulum) {
+                    posY = 1540f;
+                    maxHeight = 1845f - 1540f;
+                } else {
+                    maxHeight = 1845f - CardDescriptionArea.Y;
+                }
                 float lineHeight;
                 float currentMaxEffectiveLength = baseMaxEffectiveLength;
-                if (totalEffectiveLines > 10)
+                if (totalEffectiveLines > 8)
                 {
                     fontSize = 30f;
                     lineHeight = fontSize * 1.1f;
                     currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 30f);
                 }
-                else if (totalEffectiveLines >= 8)
+                else if (totalEffectiveLines > 6)
                 {
-                    fontSize = 33f;
+                    fontSize = 35f;
                     lineHeight = fontSize * 1.15f;
-                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 33f);
+                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 35f);
                 }
                 else
                 {
                     lineHeight = fontSize * 1.2f;
                 }
-                
                 Font descFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
                 var textOptions = new TextOptions(descFont)
                 {
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top
                 };
-                
                 int currentLine = 0;
                 foreach (string line in originalLines)
                 {
@@ -965,7 +979,7 @@ namespace Yugioh
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"绘制怪兽效果描述失败: {ex.Message}");
+                Console.WriteLine($"绘制卡牌效果描述失败: {ex.Message}");
             }
         }
         // 分割长文本行

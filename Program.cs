@@ -7,6 +7,6 @@ class Program
         var cardsJson = "tmp/cards.json";   
         var assetFigureDir = "asset/figure"; 
         var outputFigureDir = "figure"; 
-        CardGenerator.GenerateCards(cardsJson, assetFigureDir, outputFigureDir, 500);
+        CardGenerator.GenerateCards(cardsJson, assetFigureDir, outputFigureDir);
     }
 }
