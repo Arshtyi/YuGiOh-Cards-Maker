@@ -286,9 +286,6 @@ if [ $? -ne 0 ]; then
     echo "错误: 卡片数据处理失败"
     exit 1
 fi
-cp -f "$TMP_DIR/ygocdb_cards.json" "dev/ygocdb_cards.json"
-cp -f "$TMP_DIR/ygoprodeck_cardinfo.json" "dev/ygoprodeck_cardinfo.json"
-rm -f "$TMP_DIR/ygocdb_cards.json" "$TMP_DIR/ygoprodeck_cardinfo.json"
 echo "卡片处理完成！数据已保存到 $TMP_DIR/cards.json"
 echo "正在执行最终清理检查..."
 if [ -d "$TMP_DIR/figure" ]; then
