@@ -32,7 +32,7 @@ jobs:
             - name: Create directory for tarballs
               run: mkdir -p ./tarballs
 
-            - name: Pack all JPG files into a single tarball
+            - name: Pack JPG files into multiple tarballs (2000 files per tarball)
               run: |
                   jpg_files=($(find ./figure -name "*.jpg" -type f | sort))
                   total_files=${#jpg_files[@]}
@@ -40,9 +40,29 @@ jobs:
                     echo "No JPG files found in figure directory"
                     exit 1
                   fi
-
-                  tar -cJf "./tarballs/cards.tar.xz" -C ./figure .
-                  echo "Created single tarball cards.tar.xz with all ${total_files} JPG files"
+                  files_per_package=2000
+                  total_packages=$(( (total_files + files_per_package - 1) / files_per_package ))
+                  echo "总文件数: $total_files, 每包文件数: $files_per_package, 总包数: $total_packages"
+                  for (( i=0; i<$total_packages; i++ )); do
+                      start_idx=$(( i * files_per_package ))
+                      end_idx=$(( start_idx + files_per_package - 1 ))
+                      if [ $end_idx -ge $total_files ]; then
+                          end_idx=$(( total_files - 1 ))
+                      fi
+                      
+                      temp_dir="./temp_package_$i"
+                      mkdir -p "$temp_dir"
+                      
+                      for (( j=start_idx; j<=end_idx; j++ )); do
+                          cp "${jpg_files[$j]}" "$temp_dir/"
+                      done
+                      
+                      tar -cJf "./tarballs/cards_$i.tar.xz" -C "$temp_dir" .
+                      echo "Created tarball cards_$i.tar.xz with $(( end_idx - start_idx + 1 )) JPG files (from $start_idx to $end_idx)"
+                      
+                      # 删除临时目录
+                      rm -rf "$temp_dir"
+                  done
 
             - name: Delete existing release
               uses: dev-drprasad/delete-tag-and-release@v0.2.1
@@ -60,8 +80,8 @@ jobs:
               with:
                   tag_name: latest
                   name: Latest Cards
-                  body: "自动生成的卡片"
-                  files: ./tarballs/cards.tar.xz
+                  body: "自动生成的卡片，每个压缩包包含最多2000张JPG图片"
+                  files: ./tarballs/cards_*.tar.xz
                   draft: false
                   prerelease: false
               env:
