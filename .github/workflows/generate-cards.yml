@@ -3,9 +3,6 @@ name: Generate YuGiOh Cards
 on:
     schedule:
         - cron: "0 4 * * 4"
-    push:
-        branches:
-            - main
 
 jobs:
     generate-cards:

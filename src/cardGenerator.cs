@@ -180,11 +180,25 @@ namespace Yugioh
                         DrawPendulumDescription(image, card);
                         // 卡牌效果
                         DrawCardDescription(image, card);
+                        // 保存为JPG（质量50%）
                         var jpegEncoder = new JpegEncoder
                         {
                             Quality = 50 
                         };
                         image.Save(outPath, jpegEncoder);
+                        // 删除临时目录中的原始PNG
+                        string tmpPngPath = Path.Combine("tmp/figure", $"{card.Id}.png");
+                        if (File.Exists(tmpPngPath))
+                        {
+                            try
+                            {
+                                File.Delete(tmpPngPath);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"警告: 无法删除临时PNG: {tmpPngPath}, 错误: {ex.Message}");
+                            }
+                        }
                     }
                     Interlocked.Increment(ref processed);
                     if (processed % 100 == 0)
