@@ -40,7 +40,7 @@ jobs:
                     echo "No JPG files found in figure directory"
                     exit 1
                   fi
-                  files_per_package=2000
+                  files_per_package=6000
                   total_packages=$(( (total_files + files_per_package - 1) / files_per_package ))
                   echo "总文件数: $total_files, 每包文件数: $files_per_package, 总包数: $total_packages"
                   for (( i=0; i<$total_packages; i++ )); do
