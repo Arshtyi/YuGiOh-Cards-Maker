@@ -33,32 +33,17 @@ jobs:
             - name: Create directory for tarballs
               run: mkdir -p ./tarballs
 
-            - name: Pack PNG files into tarballs
+            - name: Pack all JPG files into a single tarball
               run: |
-                  png_files=($(find ./figure -name "*.png" -type f | sort))
-                  total_files=${#png_files[@]}
+                  jpg_files=($(find ./figure -name "*.jpg" -type f | sort))
+                  total_files=${#jpg_files[@]}
                   if [ $total_files -eq 0 ]; then
-                    echo "No PNG files found in figure directory"
+                    echo "No JPG files found in figure directory"
                     exit 1
                   fi
-                  batch_size=1000
-                  batch_count=$(( (total_files + batch_size - 1) / batch_size ))
-                  for ((i=0; i<batch_count; i++)); do
-                    start_idx=$((i * batch_size))
-                    end_idx=$(( (i + 1) * batch_size - 1 ))
-                    
-                    if [ $end_idx -ge $total_files ]; then
-                      end_idx=$((total_files - 1))
-                    fi
 
-                    mkdir -p ./tmp_batch
-                    for ((j=start_idx; j<=end_idx; j++)); do
-                      cp "${png_files[j]}" ./tmp_batch/
-                    done
-                    tar -cJf "./tarballs/cards_${i}.tar.xz" -C ./tmp_batch .
-                    rm -rf ./tmp_batch
-                    echo "Created tarball cards_${i}.tar.xz with files ${start_idx} to ${end_idx}"
-                  done
+                  tar -cJf "./tarballs/cards.tar.xz" -C ./figure .
+                  echo "Created single tarball cards.tar.xz with all ${total_files} JPG files"
 
             - name: Delete existing release
               uses: dev-drprasad/delete-tag-and-release@v0.2.1
@@ -77,7 +62,7 @@ jobs:
                   tag_name: latest
                   name: Latest Cards
                   body: "自动生成的卡片"
-                  files: ./tarballs/*.tar.xz
+                  files: ./tarballs/cards.tar.xz
                   draft: false
                   prerelease: false
               env:

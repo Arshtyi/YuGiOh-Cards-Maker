@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.Fonts;
 using System.Numerics;
@@ -57,7 +58,7 @@ namespace Yugioh
             if (Directory.Exists(outputFigureDir))
             {
                 Directory.CreateDirectory(outputFigureDir);
-                foreach (var file in Directory.GetFiles(outputFigureDir, "*.png"))
+                foreach (var file in Directory.GetFiles(outputFigureDir, "*.jpg"))
                 {
                     try
                     {
@@ -120,7 +121,7 @@ namespace Yugioh
                         Interlocked.Increment(ref failed);
                         return;
                     }
-                    var outPath = Path.Combine(outputFigureDir, $"{card.Id}.png");
+                    var outPath = Path.Combine(outputFigureDir, $"{card.Id}.jpg");
                     using (var image = Image.Load(frameFile))
                     {
                         // 属性
@@ -179,7 +180,11 @@ namespace Yugioh
                         DrawPendulumDescription(image, card);
                         // 卡牌效果
                         DrawCardDescription(image, card);
-                        image.Save(outPath);
+                        var jpegEncoder = new JpegEncoder
+                        {
+                            Quality = 50 
+                        };
+                        image.Save(outPath, jpegEncoder);
                     }
                     Interlocked.Increment(ref processed);
                     if (processed % 100 == 0)
