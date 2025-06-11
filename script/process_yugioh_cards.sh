@@ -101,6 +101,20 @@ elif [ $DOWNLOADED -lt $TOTAL ]; then
 fi
 rm -f "$TMP_DIR/image_urls.txt"
 rm -f "$TMP_DIR/download_worker.sh"
+RES_FIGURE_DIR="res/figure"
+if [ -d "$RES_FIGURE_DIR" ]; then
+    RES_PNG_COUNT=$(find "$RES_FIGURE_DIR" -name "*.png" 2>/dev/null | wc -l)
+    if [ "$RES_PNG_COUNT" -gt 0 ]; then
+        echo "发现 $RES_PNG_COUNT 个PNG文件在 $RES_FIGURE_DIR 目录，正在复制到 $TMP_DIR/figure..."
+        cp -f "$RES_FIGURE_DIR"/*.png "$TMP_DIR/figure/" 2>/dev/null
+        COPIED_COUNT=$(find "$TMP_DIR/figure" -name "*.png" -newer "$RES_FIGURE_DIR" 2>/dev/null | wc -l)
+        echo "成功从 $RES_FIGURE_DIR 复制 $COPIED_COUNT 个PNG文件到 $TMP_DIR/figure"
+    else
+        echo "$RES_FIGURE_DIR 目录中没有找到PNG文件，跳过复制"
+    fi
+else
+    echo "$RES_FIGURE_DIR 目录不存在，跳过复制"
+fi
 echo "开始处理卡片数据..."
 TYPELINE_CONF="res/typeline.conf"
 if [ ! -f "$TYPELINE_CONF" ]; then
