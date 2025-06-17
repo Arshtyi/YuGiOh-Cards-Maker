@@ -161,6 +161,8 @@ except Exception as e:
 id_to_cn_name = {}
 id_to_description = {}
 id_to_pendulum_description = {}
+id_to_type_bracket = {}  # 存储卡片types中括号内的内容
+
 for card_id_str, card_info in cdb_data.items():
     card_id = card_info.get('id')
     cn_name = card_info.get('cn_name')
@@ -168,11 +170,19 @@ for card_id_str, card_info in cdb_data.items():
         text_info = card_info['text']
         desc = text_info.get('desc', '')
         pdesc = text_info.get('pdesc', '')
+        types = text_info.get('types', '')
         if card_id:
             if desc:
                 id_to_description[card_id] = desc.replace('\r\n', '\n')
             if pdesc:
                 id_to_pendulum_description[card_id] = pdesc.replace('\r\n', '\n')
+            if types:
+                # 从types中提取中括号内的内容，例如从"[怪兽|效果] 昆虫/暗\n[★3] 0/0"提取"怪兽|效果"
+                import re
+                bracket_match = re.search(r'\[(.*?)\]', types)
+                if bracket_match:
+                    bracket_content = bracket_match.group(1)
+                    id_to_type_bracket[card_id] = bracket_content
     if card_id and cn_name:
         id_to_cn_name[card_id] = cn_name
 id_to_scale = {}
@@ -246,15 +256,28 @@ for card in prodeck_data.get('data', []):
                                 result[card_id]["linkMarkers"] = id_to_linkmarkers[card_id]
                     if 'typeline' in card:
                         typeline = card.get('typeline', [])
-                        if typeline:
-                            translated_typeline = []
-                            for type_item in typeline:
-                                if type_item in typeline_dict:
-                                    translated_typeline.append(typeline_dict[type_item])
+                        if card_id in id_to_type_bracket:
+                            bracket_content = id_to_type_bracket[card_id]
+                            parts = bracket_content.split('|')
+                            
+                            if parts and parts[0].strip() == "怪兽" and len(typeline) > 0:
+                                first_type = typeline[0]
+                                if first_type in typeline_dict:
+                                    first_type_translated = typeline_dict[first_type]
                                 else:
-                                    translated_typeline.append(type_item)
-                            if translated_typeline:
-                                result[card_id]["typeline"] = f"【{' / '.join(translated_typeline)}】"
+                                    first_type_translated = first_type
+                                remaining_parts = parts[1:]
+                                remaining_parts.reverse()
+                                final_typeline = [first_type_translated]
+                                for part in remaining_parts:
+                                    part = part.strip()
+                                    final_typeline.append(part)
+                            else:
+                                reversed_parts = list(parts)
+                                reversed_parts.reverse()
+                                final_typeline = [part.strip() for part in reversed_parts if part.strip()]
+                            if final_typeline:
+                                result[card_id]["typeline"] = f"【{' / '.join(final_typeline)}】"
                 
                 if card_type == 'spell' or card_type == 'trap':
                     result[card_id]["frameType"] = card_type
