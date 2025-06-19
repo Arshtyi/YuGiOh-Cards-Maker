@@ -30,7 +30,7 @@ jobs:
             - name: Create directory for tarballs
               run: mkdir -p ./tarballs
 
-            - name: Pack JPG files into multiple tarballs (2000 files per tarball)
+            - name: Pack JPG files into multiple tarballs (10000 files per tarball)
               run: |
                   jpg_files=($(find ./figure -name "*.jpg" -type f | sort))
                   total_files=${#jpg_files[@]}
@@ -78,7 +78,7 @@ jobs:
               with:
                   tag_name: latest
                   name: Latest Cards
-                  body: "自动生成的卡片，每个压缩包包含最多2000张JPG图片"
+                  body: "自动生成的卡片，每个压缩包包含最多10000张JPG图片"
                   files: |
                       ./tarballs/cards_*.tar.xz
                       ./tmp/cards.json
