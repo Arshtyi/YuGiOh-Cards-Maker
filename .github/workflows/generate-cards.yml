@@ -2,7 +2,7 @@ name: Generate YuGiOh Cards
 
 on:
     schedule:
-        - cron: "0 4 * * 4"
+        - cron: "0 5 * * 4"
 
 jobs:
     generate-cards:
@@ -79,7 +79,9 @@ jobs:
                   tag_name: latest
                   name: Latest Cards
                   body: "自动生成的卡片，每个压缩包包含最多2000张JPG图片"
-                  files: ./tarballs/cards_*.tar.xz
+                  files: |
+                      ./tarballs/cards_*.tar.xz
+                      ./tmp/cards.json
                   draft: false
                   prerelease: false
               env:
