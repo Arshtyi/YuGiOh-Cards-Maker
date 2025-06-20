@@ -192,7 +192,7 @@ namespace Yugioh
                         {
                             try
                             {
-                                File.Delete(tmpPngPath);
+                                // File.Delete(tmpPngPath);
                             }
                             catch (Exception ex)
                             {
@@ -948,14 +948,14 @@ namespace Yugioh
                 float currentMaxEffectiveLength = baseMaxEffectiveLength;
                 if (totalEffectiveLines > 8)
                 {
-                    fontSize = 30f;
+                    fontSize = 33f;
                     lineHeight = fontSize * 1.1f;
-                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 30f);
+                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 33f);
                 }
                 else if (totalEffectiveLines > 6)
                 {
                     fontSize = 35f;
-                    lineHeight = fontSize * 1.15f;
+                    lineHeight = fontSize * 1.1f;
                     currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 35f);
                 }
                 else

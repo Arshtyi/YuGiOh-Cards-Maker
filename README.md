@@ -2,9 +2,9 @@
 
 ## 项目介绍
 
--   本项目是一个自动制作简中游戏王卡片的无 GUI 工具，若想要做制图请往别处
+-   本项目是一个自动制作**简中游戏王卡片的无 GUI 工具**，若想要做制图请往别处
 -   本项目很大程度是为了[Terminus](https://github.com/Arshtyi/Terminus)
--   本仓库会利用 Github Actions Release 卡牌压缩包（为了达到这一点，采用了生成 jpg 而不是 png 的方式)
+-   本仓库会利用 Github Actions Release 卡牌
 -   项目在 Linux 上开发（`Shell+Python+C#`）
 
 ## 环境配置
