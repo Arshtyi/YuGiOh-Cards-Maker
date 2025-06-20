@@ -18,6 +18,14 @@ namespace Yugioh
         private static readonly RectangleF PendulumDescriptionArea = new RectangleF(220f, 1300f, 1180f - 220f, 1500f - 1300f);
         private static readonly RectangleF CardDescriptionArea = new RectangleF(110f, 1533f, 1283f - 110f, 1897f - 1533f);
         private static readonly string FontPath = Path.Combine("asset", "font", "sc", "XinHuaKaiTi.ttf");
+        // 资源目录
+        private static readonly string CardsDir = "cards";
+        private static readonly string MasksDir = "masks";
+        private static readonly string AttributesDir = "attributes";
+        private static readonly string IndicatorsDir = "indicators";
+        private static readonly string IconsDir = "icons";
+        private static readonly string ArrowsDir = "arrows";
+        
         private static Font? nameBlackFont;
         private static Font? nameWhiteFont;
         private static Color nameBlackColor;
@@ -46,7 +54,7 @@ namespace Yugioh
             }
         }
 
-        public static void GenerateCards(string cardsJsonPath, string assetFigureDir, string outputFigureDir, int maxCount = int.MaxValue)
+        public static void GenerateCards(string cardsJsonPath, string assetFigureDir, string outputFigureDir, bool debug = false)
         {
             Console.WriteLine("开始卡片图像生成...");
             if (!File.Exists(cardsJsonPath))
@@ -88,10 +96,33 @@ namespace Yugioh
             }
             var allValidCards = dict.Values.Where(c => !string.IsNullOrEmpty(c.FrameType)).ToList();
             List<Card> cardsToProcess;
-            if (maxCount < allValidCards.Count)
+            if (debug)
             {
-                cardsToProcess = allValidCards.Take(maxCount).ToList();
-                Console.WriteLine($"将处理前{maxCount}张卡片");
+                string debugFilePath = Path.Combine("dev", "debug.txt");
+                if (File.Exists(debugFilePath))
+                {
+                    var debugIds = File.ReadAllLines(debugFilePath)
+                        .Where(line => !string.IsNullOrWhiteSpace(line))
+                        .Select(line => line.Trim())
+                        .ToHashSet();
+                    
+                    cardsToProcess = allValidCards
+                        .Where(card => debugIds.Contains(card.Id.ToString()))
+                        .ToList();
+                    
+                    Console.WriteLine($"Debug模式: 将仅处理debug.txt中指定的{cardsToProcess.Count}张卡片");
+                    Console.WriteLine("Debug模式下不会删除tmp/figure目录下的原始PNG文件");
+                    
+                    if (cardsToProcess.Count == 0)
+                    {
+                        Console.WriteLine("警告: debug.txt中没有匹配到任何有效的卡片ID");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"警告: 未找到debug文件: {debugFilePath}, 将退出处理");
+                    return;
+                }
             }
             else
             {
@@ -110,7 +141,7 @@ namespace Yugioh
                 {
                     var frameType = card.FrameType?.ToLower() ?? "normal";
                     string? frameFile = null;
-                    string exactFramePath = Path.Combine(assetFigureDir, $"card-{frameType}.png");
+                    string exactFramePath = Path.Combine(assetFigureDir, CardsDir, $"card-{frameType}.png");
                     if (File.Exists(exactFramePath))
                     {
                         frameFile = exactFramePath;
@@ -131,7 +162,7 @@ namespace Yugioh
                         // 灵摆卡->灵摆框
                         if (frameType.Contains("pendulum"))
                         {
-                            string pendulumMaskPath = Path.Combine(assetFigureDir, "card-mask-pendulum.png");
+                            string pendulumMaskPath = Path.Combine(assetFigureDir, MasksDir, "card-mask-pendulum.png");
                             if (File.Exists(pendulumMaskPath))
                             {
                                 using (var pendulumMask = Image.Load(pendulumMaskPath))
@@ -145,7 +176,7 @@ namespace Yugioh
                         // 非灵摆卡->普通框
                         else
                         {
-                            string maskPath = Path.Combine(assetFigureDir, "card-mask.png");
+                            string maskPath = Path.Combine(assetFigureDir, MasksDir, "card-mask.png");
                             if (File.Exists(maskPath))
                             {
                                 using (var cardMask = Image.Load(maskPath))
@@ -171,6 +202,7 @@ namespace Yugioh
                         bool isXyzMonster = frameType.Contains("xyz");
                         bool isSpellOrTrap = card.CardType?.ToLower() == "spell" || card.CardType?.ToLower() == "trap";
                         bool isSpecialCard = isXyzMonster || isSpellOrTrap;
+                        // 卡名
                         DrawCardName(image, card.Name, isSpecialCard);
                         // ID
                         AddCardID(image, card);
@@ -186,17 +218,20 @@ namespace Yugioh
                             Quality = 50 
                         };
                         image.Save(outPath, jpegEncoder);
-                        // 删除临时目录中的原始PNG
-                        string tmpPngPath = Path.Combine("tmp/figure", $"{card.Id}.png");
-                        if (File.Exists(tmpPngPath))
+                        // 在非debug模式下删除临时目录中的原始PNG
+                        if (!debug)
                         {
-                            try
+                            string tmpPngPath = Path.Combine("tmp/figure", $"{card.Id}.png");
+                            if (File.Exists(tmpPngPath))
                             {
-                                File.Delete(tmpPngPath);
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"警告: 无法删除临时PNG: {tmpPngPath}, 错误: {ex.Message}");
+                                try
+                                {
+                                    File.Delete(tmpPngPath);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"警告: 无法删除临时PNG: {tmpPngPath}, 错误: {ex.Message}");
+                                }
                             }
                         }
                     }
@@ -224,117 +259,54 @@ namespace Yugioh
                 float posYOffset = 30f;
                 bool hasSpecialSeparator = cardName.Contains("·") || cardName.Contains("-") || cardName.Contains("・");
                 float effectiveLength = CalculateEffectiveLength(cardName);
-                if (effectiveLength <= 12)
+                if (effectiveLength <= 10)
                 {
                     fontSize = 105f;
                     posYOffset = 25f;
                 }
-                else if (effectiveLength <= 20)
+                else if (effectiveLength <= 12)
                 {
-                    fontSize = 80f;
-                    posYOffset = 41f;
+                    fontSize = 90f;
+                    posYOffset = 30f;
                 }
-                else if (effectiveLength <= 24)
+                else if (effectiveLength <= 14)
                 {
-                    fontSize = 60f;
+                    fontSize = 75f;
+                    posYOffset = 35f;
+                }
+                else if (effectiveLength <= 16)
+                {
+                    fontSize = 70f;
+                    posYOffset = 40f;
+                }
+                else if (effectiveLength <= 18)
+                {
+                    fontSize = 59f;
                     posYOffset = 43f;
                 }
-                else
+                else if (effectiveLength <= 20)
                 {
-                    fontSize = 54f;
+                    fontSize = 55f;
                     posYOffset = 45f;
+                }
+                else if (effectiveLength == 21)
+                {
+                    fontSize = 50f;
+                    posYOffset = 45f;
+                }
+                else if (effectiveLength > 21)
+                {
+                    fontSize = 46f;
+                    posYOffset = 48f;
                 }
                 Font nameFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
                 Color textColor = isSpecialCard ? nameWhiteColor : nameBlackColor;
-                var textOptions = new TextOptions(nameFont)
-                {
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
-                };
-                
-                FontRectangle size = TextMeasurer.MeasureSize(cardName, textOptions);
-                float width = size.Width;
-                float maxWidth = CardNameArea.Width * 0.97f;
-                float sx = 1.0f;
-                if (width > maxWidth)
-                {
-                    sx = maxWidth / width;
-                    float minScale = 0.96f;
-                    if (effectiveLength <= 1.5f || (hasSpecialSeparator && effectiveLength <= 10f))
-                    {
-                        minScale = 0.98f; 
-                    }
-                    else if (effectiveLength > 20f)
-                    {
-                        minScale = 0.75f;
-                    }
-                    else if (effectiveLength > 16f)
-                    {
-                        minScale = 0.85f;
-                    }
-                    else if (effectiveLength > 12f)
-                    {
-                        minScale = 0.89f;
-                    }
-                    else if (effectiveLength > 10f)
-                    {
-                        minScale = 0.92f;
-                    }
-                    else if (effectiveLength > 8f)
-                    {
-                        minScale = 0.93f;
-                    }
-                    else if (effectiveLength > 6f)
-                    {
-                        minScale = 0.95f; 
-                    }
-                    else if (effectiveLength > 4f)
-                    {
-                        minScale = 0.96f; 
-                    }
-                    
-                    if (sx < minScale)
-                    {
-                        sx = minScale;
-                        int attempts = 0;
-                        float reductionFactor = 0.95f;
-                        if (effectiveLength <= 1.5f || hasSpecialSeparator)
-                        {
-                            reductionFactor = 0.98f;
-                        }
-                        while (width * sx > maxWidth * 1.02f && attempts < 3)
-                        {
-                            fontSize = fontSize * reductionFactor;
-                            nameFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
-                            textOptions = new TextOptions(nameFont)
-                            {
-                                HorizontalAlignment = HorizontalAlignment.Left,
-                                VerticalAlignment = VerticalAlignment.Top
-                            };
-                            size = TextMeasurer.MeasureSize(cardName, textOptions);
-                            width = size.Width;
-                            if (width > maxWidth)
-                            {
-                                sx = Math.Max(maxWidth / width, minScale);
-                            }
-                            else
-                            {
-                                sx = 1.0f;
-                                break;
-                            }
-                            attempts++;
-                        }
-                    }
-                }
                 float posX = CardNameArea.X + 20f;
                 float posY = CardNameArea.Y + posYOffset;
                 image.Mutate(ctx =>
                 {
-                    Matrix3x2 matrix = Matrix3x2.CreateScale(sx, 1.0f) * Matrix3x2.CreateTranslation(posX, posY);
-                    ctx.SetDrawingTransform(matrix);
-                    ctx.DrawText(cardName, nameFont, nameShadowColor, new PointF(3f, 3f));
-                    ctx.DrawText(cardName, nameFont, textColor, new PointF(0f, 0f));
-                    ctx.SetDrawingTransform(Matrix3x2.Identity);
+                    ctx.DrawText(cardName, nameFont, nameShadowColor, new PointF(posX + 3f, posY + 3f));
+                    ctx.DrawText(cardName, nameFont, textColor, new PointF(posX, posY));
                 });
             }
             catch (Exception ex)
@@ -378,7 +350,7 @@ namespace Yugioh
                 if (isMonsterCard)
                 {
                     string atkDefImageName = card.LinkValue.HasValue && card.LinkValue.Value > 0 ? "atk-link.png" : "atk-def.png";
-                    string atkDefImagePath = Path.Combine(assetFigureDir, atkDefImageName);
+                    string atkDefImagePath = Path.Combine(assetFigureDir, IndicatorsDir, atkDefImageName);
                     if (File.Exists(atkDefImagePath))
                     {
                         using (var atkDefImage = Image.Load(atkDefImagePath))
@@ -411,7 +383,7 @@ namespace Yugioh
                     return;
                 }
                 string attributeImageName = $"attribute-{card.Attribute.ToLower()}.png";
-                string attributeImagePath = Path.Combine(assetFigureDir, attributeImageName);
+                string attributeImagePath = Path.Combine(assetFigureDir, AttributesDir, attributeImageName);
                 if (File.Exists(attributeImagePath))
                 {
                     using (var attributeImage = Image.Load(attributeImagePath))
@@ -483,7 +455,7 @@ namespace Yugioh
                 }
                 bool isXyz = frameType.Contains("xyz");
                 string iconFileName = isXyz ? "rank.png" : "level.png";
-                string iconFilePath = Path.Combine(assetFigureDir, iconFileName);
+                string iconFilePath = Path.Combine(assetFigureDir, IndicatorsDir, iconFileName);
                 if (!File.Exists(iconFilePath))
                 {
                     Console.WriteLine($"错误: 未找到星级/阶级图标文件: {iconFilePath}");
@@ -533,7 +505,7 @@ namespace Yugioh
         // 特殊分隔符
         private static bool IsSpecialSeparator(char c)
         {
-            return c == '·' || c == '-' || c == '・' || c == '_' || c == '=' || c == '+' || c == '/';
+            return c == '·' || c == '-' || c == '_' || c == '=' || c == '+' || c == '/';
         }
         // 判断是否为标点符号
         private static bool IsPunctuation(char c)
@@ -700,7 +672,7 @@ namespace Yugioh
                 if (hasIcon)
                 {
                     string iconName = $"icon-{race}.png";
-                    string iconPath = Path.Combine("asset", "figure", iconName);
+                    string iconPath = Path.Combine("asset", "figure", IconsDir, iconName);
                     if (File.Exists(iconPath))
                     {
                         using (var iconImage = Image.Load(iconPath))
@@ -766,7 +738,7 @@ namespace Yugioh
                 {
                     bool isActive = cardLinkMarkers.Contains(direction);
                     string arrowFileName = $"arrow-{direction}-{(isActive ? "on" : "off")}.png";
-                    string arrowFilePath = Path.Combine(assetFigureDir, arrowFileName);
+                    string arrowFilePath = Path.Combine(assetFigureDir, ArrowsDir, arrowFileName);
                     
                     if (File.Exists(arrowFilePath))
                     {

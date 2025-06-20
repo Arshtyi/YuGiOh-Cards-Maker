@@ -163,6 +163,7 @@ id_to_cn_name = {}
 id_to_description = {}
 id_to_pendulum_description = {}
 id_to_type_bracket = {}  # 存储卡片types中括号内的内容
+untranslated_typelines = 0  # 声明全局变量
 
 for card_id_str, card_info in cdb_data.items():
     card_id = card_info.get('id')
@@ -268,7 +269,6 @@ for card in prodeck_data.get('data', []):
                                 else:
                                     print(f"错误: 卡片ID {card_id} ({cn_name}) 的typeline '{first_type}' 未在typeline.conf中找到对应翻译")
                                     first_type_translated = first_type
-                                    global untranslated_typelines
                                     untranslated_typelines += 1
                                 remaining_parts = parts[1:]
                                 remaining_parts.reverse()
