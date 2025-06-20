@@ -129,6 +129,7 @@ project_root = Path('.').absolute()
 tmp_dir = project_root / "tmp"
 typeline_conf_path = project_root / "res" / "typeline.conf"
 typeline_dict = {}
+untranslated_typelines = 0
 try:
     with open(typeline_conf_path, 'r', encoding='utf-8') as f:
         for line in f:
@@ -265,7 +266,10 @@ for card in prodeck_data.get('data', []):
                                 if first_type in typeline_dict:
                                     first_type_translated = typeline_dict[first_type]
                                 else:
+                                    print(f"错误: 卡片ID {card_id} ({cn_name}) 的typeline '{first_type}' 未在typeline.conf中找到对应翻译")
                                     first_type_translated = first_type
+                                    global untranslated_typelines
+                                    untranslated_typelines += 1
                                 remaining_parts = parts[1:]
                                 remaining_parts.reverse()
                                 final_typeline = [first_type_translated]
@@ -293,6 +297,8 @@ for card in prodeck_data.get('data', []):
         else:
             print(f"卡片ID {card_id} 没有找到对应的中文名称，跳过该卡片")
 print(f"处理完成，共生成{len(result)}张卡的数据")
+if untranslated_typelines > 0:
+    print(f"警告: 有{untranslated_typelines}个typeline未能在typeline.conf中找到对应翻译")
 output_file = tmp_dir / "cards.json"
 try:
     other_json_path = project_root / "res" / "other.json"

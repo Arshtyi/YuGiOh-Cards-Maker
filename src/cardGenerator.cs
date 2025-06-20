@@ -192,7 +192,7 @@ namespace Yugioh
                         {
                             try
                             {
-                                // File.Delete(tmpPngPath);
+                                File.Delete(tmpPngPath);
                             }
                             catch (Exception ex)
                             {
