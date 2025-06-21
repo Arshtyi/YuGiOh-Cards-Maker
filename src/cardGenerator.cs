@@ -449,7 +449,7 @@ namespace Yugioh
             {
                 var frameType = card.FrameType?.ToLower() ?? "";
                 bool isMonsterCard = card.CardType?.ToLower() == "monster";
-                if (!isMonsterCard || !card.Level.HasValue || card.Level.Value <= 0)
+                if (!isMonsterCard || !card.Level.HasValue || card.Level.Value == -1)
                 {
                     return;
                 }

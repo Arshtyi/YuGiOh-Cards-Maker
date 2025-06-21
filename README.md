@@ -12,6 +12,12 @@
 1. 项目不是为了 DIY
 2. 不会支持其他语言
 3. 卡面元素暂时不会增加
+4. 不会有高速魔法、黑暗同调、技能卡、卡背、RD 等，但是支持 Token
+
+## 关于 Token
+
+-   目前 token 的 id 采用公认的召唤衍生物的卡的 id+1 的方式，具体信息见 `cfg/`和 `res/`
+-   因为 token 的信息是手动维护，所以可能存在错误
 
 ## 目录结构
 
@@ -22,7 +28,6 @@
         -   `special/`: 特殊字体（如攻击力/守备力/Link 值/ID 字体）
 -   `res/`:资源文件
     -   `other.json`:包括衍生物在内的非正式卡片
-    -   `figure/`: 上述非正式卡的图片资源，将会被复制到 `tmp/figure`
     -   `typeline.conf`: 怪兽卡的 typeline 翻译
 -   `script/`: 脚本目录
     -   `process_yugioh_cards.sh`: 处理数据的脚本

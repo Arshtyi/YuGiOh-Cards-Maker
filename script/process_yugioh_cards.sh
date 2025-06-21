@@ -24,7 +24,7 @@ rm "$TMP_DIR/cards.json" "$TMP_DIR/ygocdb_cards.zip"
 echo "正在下载ygoprodeck卡片数据..."
 curl -s https://db.ygoprodeck.com/api/v7/cardinfo.php | jq . > "$TMP_DIR/ygoprodeck_cardinfo.json"
 mkdir -p "$TMP_DIR/figure"
-THREAD_NUM=200
+THREAD_NUM=500
 echo "正在提取卡片图片URL..."
 jq -r '.data[].card_images[].image_url_cropped' "$TMP_DIR/ygoprodeck_cardinfo.json" > "$TMP_DIR/image_urls.txt"
 TOTAL=$(wc -l < "$TMP_DIR/image_urls.txt")
@@ -99,240 +99,30 @@ if [ $DOWNLOADED -eq 0 ]; then
 elif [ $DOWNLOADED -lt $TOTAL ]; then
     echo "提示: 部分图片可能未能下载，成功率: $(($DOWNLOADED * 100 / $TOTAL))%"
 fi
-rm -f "$TMP_DIR/image_urls.txt"
-rm -f "$TMP_DIR/download_worker.sh"
-RES_FIGURE_DIR="res/figure"
-if [ -d "$RES_FIGURE_DIR" ]; then
-    RES_PNG_COUNT=$(find "$RES_FIGURE_DIR" -name "*.png" 2>/dev/null | wc -l)
-    if [ "$RES_PNG_COUNT" -gt 0 ]; then
-        echo "发现 $RES_PNG_COUNT 个PNG文件在 $RES_FIGURE_DIR 目录，正在复制到 $TMP_DIR/figure..."
-        cp -f "$RES_FIGURE_DIR"/*.png "$TMP_DIR/figure/" 2>/dev/null
-        COPIED_COUNT=$(find "$TMP_DIR/figure" -name "*.png" -newer "$RES_FIGURE_DIR" 2>/dev/null | wc -l)
-        echo "成功从 $RES_FIGURE_DIR 复制 $COPIED_COUNT 个PNG文件到 $TMP_DIR/figure"
-    else
-        echo "$RES_FIGURE_DIR 目录中没有找到PNG文件，跳过复制"
-    fi
-else
-    echo "$RES_FIGURE_DIR 目录不存在，跳过复制"
-fi
+rm -f "$TMP_DIR/image_urls.txt" "$TMP_DIR/download_worker.sh"
 echo "开始处理卡片数据..."
 TYPELINE_CONF="res/typeline.conf"
 if [ ! -f "$TYPELINE_CONF" ]; then
     echo "错误: 找不到typeline配置文件: $TYPELINE_CONF"
     exit 1
 fi
-python3 - << 'EOF'
-import json
-import sys
-from pathlib import Path
-project_root = Path('.').absolute()
-tmp_dir = project_root / "tmp"
-typeline_conf_path = project_root / "res" / "typeline.conf"
-typeline_dict = {}
-untranslated_typelines = 0
-try:
-    with open(typeline_conf_path, 'r', encoding='utf-8') as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith('//'):
-                continue
-            if '=' in line:
-                key, value = line.split('=', 1)
-                typeline_dict[key.strip()] = value.strip()
-    print(f"成功加载typeline配置，包含{len(typeline_dict)}个翻译项")
-except Exception as e:
-    print(f"加载typeline配置文件时出错: {e}")
-    sys.exit(1)
-prodeck_file = tmp_dir / "ygoprodeck_cardinfo.json"
-try:
-    with open(prodeck_file, 'r', encoding='utf-8') as f:
-        prodeck_data = json.load(f)
-    print(f"成功加载ygoprodeck_cardinfo.json，包含{len(prodeck_data.get('data', []))}张卡")
-except Exception as e:
-    print(f"加载ygoprodeck_cardinfo.json时出错: {e}")
-    sys.exit(1)
-cdb_file = tmp_dir / "ygocdb_cards.json"
-try:
-    with open(cdb_file, 'r', encoding='utf-8') as f:
-        cdb_data = json.load(f)
-    print(f"成功加载ygocdb_cards.json，包含{len(cdb_data)}条记录")
-except Exception as e:
-    print(f"加载ygocdb_cards.json时出错: {e}")
-    sys.exit(1)
-id_to_cn_name = {}
-id_to_description = {}
-id_to_pendulum_description = {}
-id_to_type_bracket = {}  # 存储卡片types中括号内的内容
-untranslated_typelines = 0  # 声明全局变量
-
-for card_id_str, card_info in cdb_data.items():
-    card_id = card_info.get('id')
-    cn_name = card_info.get('cn_name')
-    if 'text' in card_info and isinstance(card_info['text'], dict):
-        text_info = card_info['text']
-        desc = text_info.get('desc', '')
-        pdesc = text_info.get('pdesc', '')
-        types = text_info.get('types', '')
-        if card_id:
-            if desc:
-                id_to_description[card_id] = desc.replace('\r\n', '\n')
-            if pdesc:
-                id_to_pendulum_description[card_id] = pdesc.replace('\r\n', '\n')
-            if types:
-                # 从types中提取中括号内的内容，例如从"[怪兽|效果] 昆虫/暗\n[★3] 0/0"提取"怪兽|效果"
-                import re
-                bracket_match = re.search(r'\[(.*?)\]', types)
-                if bracket_match:
-                    bracket_content = bracket_match.group(1)
-                    id_to_type_bracket[card_id] = bracket_content
-    if card_id and cn_name:
-        id_to_cn_name[card_id] = cn_name
-id_to_scale = {}
-id_to_attribute = {}
-id_to_atk = {}
-id_to_def = {}
-id_to_level = {}
-id_to_linkval = {}
-id_to_linkmarkers = {}
-for card in prodeck_data.get('data', []):
-    card_id = card.get('id')
-    if card_id and 'scale' in card:
-        id_to_scale[card_id] = card.get('scale')
-    if card_id and 'attribute' in card:
-        id_to_attribute[card_id] = card.get('attribute', '').lower()
-    if card_id and 'atk' in card:
-        id_to_atk[card_id] = card.get('atk')
-    if card_id and 'def' in card:
-        id_to_def[card_id] = card.get('def')
-    if card_id and 'level' in card:
-        id_to_level[card_id] = card.get('level')
-    if card_id and 'linkval' in card:
-        id_to_linkval[card_id] = card.get('linkval')
-    if card_id and 'linkmarkers' in card:
-        linkmarkers = card.get('linkmarkers', [])
-        id_to_linkmarkers[card_id] = [marker.lower() for marker in linkmarkers]
-result = {}
-for card in prodeck_data.get('data', []):
-    card_id = card.get('id')
-    if card_id:
-        cn_name = id_to_cn_name.get(card_id)
-        if cn_name:
-            card_type = None
-            human_readable_type = card.get('humanReadableCardType', '').lower()
-            if 'monster' in human_readable_type:
-                card_type = 'monster'
-            elif 'spell' in human_readable_type:
-                card_type = 'spell'
-            elif 'trap' in human_readable_type:
-                card_type = 'trap'
-            result[card_id] = {
-                "name": cn_name,
-                "id": card_id
-            }
-            if card_id in id_to_description:
-                result[card_id]["description"] = id_to_description[card_id]
-            if card_type:
-                result[card_id]["cardType"] = card_type
-                if card_type == 'monster':
-                    if card_id in id_to_attribute:
-                        result[card_id]["attribute"] = id_to_attribute[card_id]
-                    if card_id in id_to_atk:
-                        result[card_id]["atk"] = id_to_atk[card_id]
-                    if card_id in id_to_def:
-                        result[card_id]["def"] = id_to_def[card_id]
-                    if card_id in id_to_level:
-                        result[card_id]["level"] = id_to_level[card_id]
-                    if 'frameType' in card:
-                        frame_type = card.get('frameType')
-                        frame_type = frame_type.replace('_', '-')
-                        result[card_id]["frameType"] = frame_type
-                        if 'pendulum' in frame_type:
-                            if card_id in id_to_pendulum_description:
-                                result[card_id]["pendulumDescription"] = id_to_pendulum_description[card_id]
-                            if card_id in id_to_scale:
-                                result[card_id]["scale"] = id_to_scale[card_id]
-                        if frame_type == 'link' or 'link' in frame_type:
-                            if card_id in id_to_linkval:
-                                result[card_id]["linkVal"] = id_to_linkval[card_id]
-                            if card_id in id_to_linkmarkers:
-                                result[card_id]["linkMarkers"] = id_to_linkmarkers[card_id]
-                    if 'typeline' in card:
-                        typeline = card.get('typeline', [])
-                        if card_id in id_to_type_bracket:
-                            bracket_content = id_to_type_bracket[card_id]
-                            parts = bracket_content.split('|')
-                            
-                            if parts and parts[0].strip() == "怪兽" and len(typeline) > 0:
-                                first_type = typeline[0]
-                                if first_type in typeline_dict:
-                                    first_type_translated = typeline_dict[first_type]
-                                else:
-                                    print(f"错误: 卡片ID {card_id} ({cn_name}) 的typeline '{first_type}' 未在typeline.conf中找到对应翻译")
-                                    first_type_translated = first_type
-                                    untranslated_typelines += 1
-                                remaining_parts = parts[1:]
-                                remaining_parts.reverse()
-                                final_typeline = [first_type_translated]
-                                for part in remaining_parts:
-                                    part = part.strip()
-                                    final_typeline.append(part)
-                            else:
-                                reversed_parts = list(parts)
-                                reversed_parts.reverse()
-                                final_typeline = [part.strip() for part in reversed_parts if part.strip()]
-                            if final_typeline:
-                                result[card_id]["typeline"] = f"【{' / '.join(final_typeline)}】"
-                
-                if card_type == 'spell' or card_type == 'trap':
-                    result[card_id]["frameType"] = card_type
-                    result[card_id]["attribute"] = card_type
-                    if 'race' in card:
-                        race = card.get('race', '')
-                        if race:
-                            result[card_id]["race"] = race.lower()
-            if 'card_images' in card and card['card_images'] and 'image_url_cropped' in card['card_images'][0]:
-                image_url = card['card_images'][0]['image_url_cropped']
-                image_filename = image_url.split('/')[-1]
-                result[card_id]["cardImage"] = image_filename
-        else:
-            print(f"卡片ID {card_id} 没有找到对应的中文名称，跳过该卡片")
-print(f"处理完成，共生成{len(result)}张卡的数据")
-if untranslated_typelines > 0:
-    print(f"警告: 有{untranslated_typelines}个typeline未能在typeline.conf中找到对应翻译")
-output_file = tmp_dir / "cards.json"
-try:
-    other_json_path = project_root / "res" / "other.json"
-    other_data = {}
-    if other_json_path.exists():
-        try:
-            with open(other_json_path, 'r', encoding='utf-8') as f:
-                content = f.read().strip()
-                if content and content != '{}':
-                    other_data = json.loads(content)
-                    print(f"成功加载other.json，合并{len(other_data)}条记录")
-        except Exception as e:
-            print(f"读取other.json时出错: {e}，将跳过合并")
-    if other_data:
-        for card_id, card_info in other_data.items():
-            if card_id in result:
-                result[card_id].update(card_info)
-            else:
-                result[card_id] = card_info
-        print(f"合并other.json后，共有{len(result)}张卡的数据")
-    
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
-    print(f"成功将结果保存到 {output_file}")
-except Exception as e:
-    print(f"保存结果到 {output_file} 时出错: {e}")
-    sys.exit(1)
-EOF
+chmod +x process_yugioh_cards.py
+python3 process_yugioh_cards.py
 if [ $? -ne 0 ]; then
     echo "错误: 卡片数据处理失败"
     exit 1
 fi
-rm -f "$TMP_DIR/ygocdb_cards.json" "$TMP_DIR/ygoprodeck_cardinfo.json"
 echo "卡片处理完成！数据已保存到 $TMP_DIR/cards.json"
+echo "正在对cards.json按ID升序排序..."
+if command -v jq &> /dev/null; then
+    cp "$TMP_DIR/cards.json" "$TMP_DIR/cards_unsorted.json"
+    cat "$TMP_DIR/cards_unsorted.json" | jq -S 'to_entries | sort_by(.key | tonumber) | from_entries' > "$TMP_DIR/cards.json"
+    rm -f "$TMP_DIR/cards_unsorted.json"
+    echo "排序完成！"
+else
+    echo "警告: 未找到jq工具，跳过排序步骤"
+fi
+# rm -f "$TMP_DIR/ygocdb_cards.json" "$TMP_DIR/ygoprodeck_cardinfo.json"
 echo "正在执行最终清理检查..."
 if [ -d "$TMP_DIR/figure" ]; then
     jpg_count=$(find "$TMP_DIR/figure" -name "*.jpg" | wc -l)
