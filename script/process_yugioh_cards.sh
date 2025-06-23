@@ -24,7 +24,7 @@ rm "$TMP_DIR/cards.json" "$TMP_DIR/ygocdb_cards.zip"
 echo "正在下载ygoprodeck卡片数据..."
 curl -s https://db.ygoprodeck.com/api/v7/cardinfo.php | jq . > "$TMP_DIR/ygoprodeck_cardinfo.json"
 mkdir -p "$TMP_DIR/figure"
-THREAD_NUM=500
+THREAD_NUM=200
 echo "正在提取卡片图片URL..."
 jq -r '.data[].card_images[].image_url_cropped' "$TMP_DIR/ygoprodeck_cardinfo.json" > "$TMP_DIR/image_urls.txt"
 TOTAL=$(wc -l < "$TMP_DIR/image_urls.txt")
@@ -122,7 +122,7 @@ if command -v jq &> /dev/null; then
 else
     echo "警告: 未找到jq工具，跳过排序步骤"
 fi
-# rm -f "$TMP_DIR/ygocdb_cards.json" "$TMP_DIR/ygoprodeck_cardinfo.json"
+rm -f "$TMP_DIR/ygocdb_cards.json" "$TMP_DIR/ygoprodeck_cardinfo.json"
 echo "正在执行最终清理检查..."
 if [ -d "$TMP_DIR/figure" ]; then
     jpg_count=$(find "$TMP_DIR/figure" -name "*.jpg" | wc -l)
