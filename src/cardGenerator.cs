@@ -104,10 +104,19 @@ namespace Yugioh
                     var debugIds = File.ReadAllLines(debugFilePath)
                         .Where(line => !string.IsNullOrWhiteSpace(line))
                         .Select(line => line.Trim())
-                        .ToHashSet();
-                    cardsToProcess = allValidCards
-                        .Where(card => debugIds.Contains(card.Id.ToString()))
                         .ToList();
+                    cardsToProcess = new List<Card>();
+                    foreach (var idStr in debugIds)
+                    {
+                        if (dict.TryGetValue(idStr, out Card card) && !string.IsNullOrEmpty(card.FrameType))
+                        {
+                            cardsToProcess.Add(card);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"警告: debug.txt中的ID {idStr} 在cards.json中不存在或没有有效的框架类型");
+                        }
+                    }
                     Console.WriteLine($"将仅处理debug.txt中指定的{cardsToProcess.Count}张卡片");
                     Console.WriteLine("Debug模式下不会删除tmp/figure目录下的原始PNG文件");
                     if (cardsToProcess.Count == 0)
@@ -232,7 +241,8 @@ namespace Yugioh
                         // 在非debug模式下删除临时目录中的原始PNG
                         if (!debug)
                         {
-                            string tmpPngPath = Path.Combine("tmp/figure", $"{card.Id}.png");
+                            string imageId = card.CardImage ?? card.Id.ToString();
+                            string tmpPngPath = Path.Combine("tmp/figure", $"{imageId}.png");
                             if (File.Exists(tmpPngPath))
                             {
                                 try
@@ -618,7 +628,8 @@ namespace Yugioh
         {
             try
             {
-                string cardImagePath = Path.Combine(figureDir, $"{card.Id}.png");
+                string imageId = card.CardImage ?? card.Id.ToString();
+                string cardImagePath = Path.Combine(figureDir, $"{imageId}.png");
                 if (File.Exists(cardImagePath))
                 {
                     using (var cardImage = Image.Load(cardImagePath))
@@ -633,12 +644,12 @@ namespace Yugioh
                 }
                 else
                 {
-                    Console.WriteLine($"警告: 未找到卡图: {cardImagePath}");
+                    Console.WriteLine($"警告: 未找到卡图: {cardImagePath}，卡片ID={card.Id}, 名称={card.Name}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加卡图失败: {ex.Message}");
+                Console.WriteLine($"添加卡图失败: {ex.Message}, 卡片ID={card.Id}, 名称={card.Name}");
             }
         }
         // 魔法卡/陷阱卡字样及icon

@@ -1,4 +1,17 @@
 {
+    "11738490": {
+        "name": "@火灵天星衍生物",
+        "id": 11738490,
+        "description": "由「电子界到临者@火灵天星」的效果特殊召唤。",
+        "cardType": "monster",
+        "attribute": "dark",
+        "atk": 0,
+        "def": 0,
+        "level": 1,
+        "frameType": "token",
+        "typeline": "【电子界族 / 衍生物 / 通常】",
+        "cardImage": "11738490"
+    },
     "98875864": {
         "name": "G石人衍生物",
         "id": 98875864,
@@ -11,6 +24,32 @@
         "frameType": "token",
         "typeline": "【电子界族 / 衍生物 / 通常】",
         "cardImage": "98875864"
+    },
+    "3129134": {
+        "name": "Δ衍生物",
+        "id": 3129134,
+        "description": "由「引诱之Δ」的效果特殊召唤。",
+        "cardType": "monster",
+        "attribute": "dark",
+        "atk": 0,
+        "def": 0,
+        "level": 5,
+        "frameType": "token",
+        "typeline": "【不死族 / 衍生物 / 通常】",
+        "cardImage": "3129134"
+    },
+    "2625940": {
+        "name": "假脱机衍生物",
+        "id": 2625940,
+        "description": "由「假脱机代码」的效果特殊召唤。这衍生物不能为上级召唤而解放。",
+        "cardType": "monster",
+        "attribute": "light",
+        "atk": 0,
+        "def": 0,
+        "level": 3,
+        "frameType": "token",
+        "typeline": "【电子界族 / 衍生物 / 通常】",
+        "cardImage": "2625940"
     },
     "86871615": {
         "name": "克隆衍生物",
@@ -51,6 +90,32 @@
         "typeline": "【水族 / 衍生物 / 通常】",
         "cardImage": "88477150"
     },
+    "9396663": {
+        "name": "冰结界衍生物",
+        "id": 9396663,
+        "description": "由「冰结界的镜魔师」的效果特殊召唤。",
+        "cardType": "monster",
+        "attribute": "water",
+        "atk": 0,
+        "def": 0,
+        "level": 1,
+        "frameType": "token",
+        "typeline": "【水族 / 衍生物 / 通常】",
+        "cardImage": "9396663"
+    },
+    "3285552": {
+        "name": "勇者衍生物",
+        "id": 3285552,
+        "description": "由「阿拉弥赛亚之仪」的效果特殊召唤。",
+        "cardType": "monster",
+        "attribute": "earth",
+        "atk": 2000,
+        "def": 2000,
+        "level": 4,
+        "frameType": "token",
+        "typeline": "【不死族 / 衍生物 / 通常】",
+        "cardImage": "3285552"
+    },
     "87669905": {
         "name": "双天魂衍生物",
         "id": 87669905,
@@ -76,6 +141,19 @@
         "frameType": "token",
         "typeline": "【水族 / 衍生物 / 通常】",
         "cardImage": "79387393"
+    },
+    "7610395": {
+        "name": "咒眼之眷属衍生物",
+        "id": 7610395,
+        "description": "由「眷现之咒眼」的效果特殊召唤。",
+        "cardType": "monster",
+        "attribute": "dark",
+        "atk": 400,
+        "def": 400,
+        "level": 1,
+        "frameType": "token",
+        "typeline": "【恶魔族 / 衍生物 / 通常】",
+        "cardImage": "7610395"
     },
     "88923964": {
         "name": "圣骑士衍生物",
@@ -116,6 +194,32 @@
         "typeline": "【电子界族 / 衍生物 / 通常】",
         "cardImage": "93104633"
     },
+    "7392746": {
+        "name": "小鼠骨衍生物",
+        "id": 7392746,
+        "description": "由「鼠骨」的效果特殊召唤。",
+        "cardType": "monster",
+        "attribute": "earth",
+        "atk": 100,
+        "def": 300,
+        "level": 1,
+        "frameType": "token",
+        "typeline": "【不死族 / 衍生物 / 通常】",
+        "cardImage": "7392746"
+    },
+    "8025951": {
+        "name": "工具箱子衍生物",
+        "id": 8025951,
+        "description": "由「工具箱子」的效果特殊召唤。",
+        "cardType": "monster",
+        "attribute": "earth",
+        "atk": 0,
+        "def": 0,
+        "level": 1,
+        "frameType": "token",
+        "typeline": "【机械族 / 衍生物 / 通常】",
+        "cardImage": "8025951"
+    },
     "645088": {
         "name": "工具衍生物",
         "id": 645088,
@@ -141,6 +245,19 @@
         "frameType": "token",
         "typeline": "【机械族 / 衍生物 / 通常】",
         "cardImage": "904186"
+    },
+    "4417408": {
+        "name": "幻兽机衍生物",
+        "id": 4417408,
+        "description": "由「幻兽机 黑猎鹰」的效果特殊召唤。",
+        "cardType": "monster",
+        "attribute": "wind",
+        "atk": 0,
+        "def": 0,
+        "level": 3,
+        "frameType": "token",
+        "typeline": "【机械族 / 衍生物 / 通常】",
+        "cardImage": "4417408"
     },
     "94973029": {
         "name": "幻兽机衍生物",
@@ -168,6 +285,19 @@
         "typeline": "【恶魔族 / 衍生物 / 通常】",
         "cardImage": "1426715"
     },
+    "2819436": {
+        "name": "幻煌龙衍生物",
+        "id": 2819436,
+        "description": "由「幻煌之都 帕西菲斯」的效果特殊召唤。",
+        "cardType": "monster",
+        "attribute": "water",
+        "atk": 2000,
+        "def": 2000,
+        "level": 8,
+        "frameType": "token",
+        "typeline": "【幻龙族 / 衍生物 / 通常】",
+        "cardImage": "2819436"
+    },
     "93224849": {
         "name": "幻魔的殉教者衍生物",
         "id": 93224849,
@@ -194,6 +324,19 @@
         "typeline": "【兽战士族 / 衍生物 / 通常】",
         "cardImage": "82255873"
     },
+    "10389143": {
+        "name": "战鹰衍生物",
+        "id": 10389143,
+        "description": "由「No.42 星舰·银河战斧鹰」的效果特殊召唤。这个衍生物在这个回合的结束阶段破坏。",
+        "cardType": "monster",
+        "attribute": "wind",
+        "atk": 2000,
+        "def": 0,
+        "level": 6,
+        "frameType": "token",
+        "typeline": "【机械族 / 衍生物 / 通常】",
+        "cardImage": "10389143"
+    },
     "94703022": {
         "name": "拥塞器衍生物",
         "id": 94703022,
@@ -219,6 +362,19 @@
         "frameType": "token",
         "typeline": "【昆虫族 / 衍生物 / 通常】",
         "cardImage": "91512836"
+    },
+    "8198621": {
+        "name": "暗魂体衍生物",
+        "id": 8198621,
+        "description": "由「冥界龙 龙亡」的效果特殊召唤。",
+        "cardType": "monster",
+        "attribute": "dark",
+        "atk": -1,
+        "def": 0,
+        "level": -1,
+        "frameType": "token",
+        "typeline": "【不死族 / 衍生物 / 通常】",
+        "cardImage": "8198621"
     },
     "97452818": {
         "name": "月衍生物",
@@ -257,7 +413,59 @@
         "level": 3,
         "frameType": "token",
         "typeline": "【爬虫族 / 衍生物 / 通常】",
-        "cardImage": "86871615"
+        "cardImage": "86801872"
+    },
+    "11050416": {
+        "name": "河马衍生物",
+        "id": 11050416,
+        "description": "由「超河马狂欢节」的效果特殊召唤。这衍生物不能解放。只要「河马衍生物」在怪兽区域存在，发动「超河马狂欢节」的玩家不能从额外卡组把怪兽特殊召唤。",
+        "cardType": "monster",
+        "attribute": "earth",
+        "atk": 0,
+        "def": 0,
+        "level": 1,
+        "frameType": "token",
+        "typeline": "【兽族族 / 衍生物 / 通常】",
+        "cardImage": "11050416"
+    },
+    "11050417": {
+        "name": "河马衍生物",
+        "id": 11050417,
+        "description": "由「超河马狂欢节」的效果特殊召唤。这衍生物不能解放。只要「河马衍生物」在怪兽区域存在，发动「超河马狂欢节」的玩家不能从额外卡组把怪兽特殊召唤。",
+        "cardType": "monster",
+        "attribute": "earth",
+        "atk": 0,
+        "def": 0,
+        "level": 1,
+        "frameType": "token",
+        "typeline": "【兽族族 / 衍生物 / 通常】",
+        "cardImage": "11050417"
+    },
+    "11050418": {
+        "name": "河马衍生物",
+        "id": 11050418,
+        "description": "由「超河马狂欢节」的效果特殊召唤。这衍生物不能解放。只要「河马衍生物」在怪兽区域存在，发动「超河马狂欢节」的玩家不能从额外卡组把怪兽特殊召唤。",
+        "cardType": "monster",
+        "attribute": "earth",
+        "atk": 0,
+        "def": 0,
+        "level": 1,
+        "frameType": "token",
+        "typeline": "【兽族族 / 衍生物 / 通常】",
+        "cardImage": "11050418"
+    },
+    "11050419": {
+        "name": "河马衍生物",
+        "id": 11050419,
+        "description": "由「超河马狂欢节」的效果特殊召唤。这衍生物不能解放。只要「河马衍生物」在怪兽区域存在，发动「超河马狂欢节」的玩家不能从额外卡组把怪兽特殊召唤。",
+        "cardType": "monster",
+        "attribute": "earth",
+        "atk": 0,
+        "def": 0,
+        "level": 1,
+        "frameType": "token",
+        "typeline": "【兽族族 / 衍生物 / 通常】",
+        "cardImage": "11050419"
     },
     "85969518": {
         "name": "海造贼衍生物",
@@ -310,6 +518,19 @@
         "frameType": "token",
         "typeline": "【恶魔族 / 衍生物 / 通常】",
         "cardImage": "82324106"
+    },
+    "11654068": {
+        "name": "炸弹衍生物",
+        "id": 11654068,
+        "description": "由「火焰喷射」的效果特殊召唤。这个衍生物被破坏时那个控制者受到500伤害。",
+        "cardType": "monster",
+        "attribute": "fire",
+        "atk": 1000,
+        "def": 1000,
+        "level": 1,
+        "frameType": "token",
+        "typeline": "【炎族 / 衍生物 / 通常】",
+        "cardImage": "11654068"
     },
     "83239740": {
         "name": "牡蛎衍生物",
@@ -428,6 +649,19 @@
         "typeline": "【植物族 / 衍生物 / 通常】",
         "cardImage": "82994510"
     },
+    "9929399": {
+        "name": "胧影衍生物",
+        "id": 9929399,
+        "description": "由「黑羽-胧影之业风」的效果特殊召唤。这衍生物不能解放，不能作为同调素材。",
+        "cardType": "monster",
+        "attribute": "dark",
+        "atk": 0,
+        "def": 0,
+        "level": 1,
+        "frameType": "token",
+        "typeline": "【鸟兽族 / 衍生物 / 通常】",
+        "cardImage": "9929399"
+    },
     "85771021": {
         "name": "蒂斯衍生物",
         "id": 85771021,
@@ -441,6 +675,19 @@
         "typeline": "【天使族 / 衍生物 / 通常】",
         "cardImage": "85771021"
     },
+    "9047461": {
+        "name": "蒸汽衍生物",
+        "id": 9047461,
+        "description": "由「黑羽-隐身蓑之斯蒂姆」的效果特殊召唤。",
+        "cardType": "monster",
+        "attribute": "wind",
+        "atk": 100,
+        "def": 100,
+        "level": 1,
+        "frameType": "token",
+        "typeline": "【水族 / 衍生物 / 通常】",
+        "cardImage": "9047461"
+    },
     "99092625": {
         "name": "蔷薇衍生物",
         "id": 99092625,
@@ -453,6 +700,19 @@
         "frameType": "token",
         "typeline": "【植物族 / 衍生物 / 通常】",
         "cardImage": "99092625"
+    },
+    "1799465": {
+        "name": "蝉蜕衍生物",
+        "id": 1799465,
+        "description": "由「脱壳蝉」的效果特殊召唤。只要这个效果特殊召唤的衍生物在怪兽区域存在，自己不是昆虫族怪兽不能从额外卡组特殊召唤。",
+        "cardType": "monster",
+        "attribute": "earth",
+        "atk": 0,
+        "def": 0,
+        "level": 3,
+        "frameType": "token",
+        "typeline": "【昆虫族 / 衍生物 / 通常】",
+        "cardImage": "1799465"
     },
     "84816245": {
         "name": "软件狗衍生物",
@@ -492,6 +752,19 @@
         "frameType": "token",
         "typeline": "【恶魔族 / 衍生物 / 通常】",
         "cardImage": "90884404"
+    },
+    "12958920": {
+        "name": "铳士衍生物",
+        "id": 12958920,
+        "description": "由「幻铳士」的效果特殊召唤。",
+        "cardType": "monster",
+        "attribute": "dark",
+        "atk": 500,
+        "def": 500,
+        "level": 4,
+        "frameType": "token",
+        "typeline": "【恶魔族 / 衍生物 / 通常】",
+        "cardImage": "12958920"
     },
     "85771020": {
         "name": "阿斯蒙衍生物",
@@ -556,6 +829,32 @@
         "level": 3,
         "frameType": "token",
         "typeline": "【昆虫族 / 衍生物 / 通常】",
-        "cardImage": "91512836"
+        "cardImage": "87240372"
+    },
+    "12965762": {
+        "name": "魔草衍生物",
+        "id": 12965762,
+        "description": "由「死亡石斛」的效果特殊召唤。",
+        "cardType": "monster",
+        "attribute": "earth",
+        "atk": 800,
+        "def": 800,
+        "level": 1,
+        "frameType": "token",
+        "typeline": "【植物族 / 衍生物 / 通常】",
+        "cardImage": "12965762"
+    },
+    "9925983": {
+        "name": "黑羽-黑冠衍生物",
+        "id": 9925983,
+        "description": "由「黑翼复仇」的效果特殊召唤。",
+        "cardType": "monster",
+        "attribute": "dark",
+        "atk": 0,
+        "def": 800,
+        "level": 2,
+        "frameType": "token",
+        "typeline": "【鸟兽族 / 衍生物 / 通常】",
+        "cardImage": "9925983"
     }
 }
