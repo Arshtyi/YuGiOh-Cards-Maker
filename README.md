@@ -34,7 +34,7 @@
 -   `cfg/`: 标准 JSON 示例
 -   `dev/`: 开发目录
     -   `debug.txt`: Debug 处理的卡片 ID 列表
--   `log/`:日志目录（默认没有日志输出)
+-   `log/`:日志目录（默认没有日志输出到这里)
 -   `figure/`: 输出目录
 -   `src/`: 代码目录
 -   `tmp/`: 临时目录
@@ -68,20 +68,18 @@ dotnet run
 ./YuGiOh-Cards-Maker.sh
 ```
 
-## DEBUG
+## 可选参数
 
-使用如下命令
+### Shell 继承参数
 
-```bash
-dotnet run debug
-```
+这些参数能够由 shell 脚本继承给 C#程序.
 
-使得程序
+-   `--debug`：
 
--   只生成 `dev/debug.txt`对应 ID 的卡片
--   不删除卡图
+    -   只生成 `dev/debug.txt`对应 ID 的卡片
+    -   不删除 `tmp`目录下的卡图
 
-这样便于测试
+-   `--png`：生成无损 png 而不是 50%质量的 jpg.
 
 ## Thx
 

@@ -121,7 +121,7 @@ setup_system_limits() {
 }
 create_directories() {
     print_green "=== 创建必要目录 ==="
-    
+
     mkdir -p tmp
     mkdir -p figure
     mkdir -p tmp/figure
@@ -140,8 +140,25 @@ run_project() {
         print_red "找不到数据处理脚本: script/process_yugioh_cards.sh"
         exit 1
     fi
+    DOTNET_ARGS=""
+    for arg in "$@"; do
+        case $arg in
+            --debug)
+                DOTNET_ARGS="$DOTNET_ARGS --debug"
+                ;;
+            --png)
+                DOTNET_ARGS="$DOTNET_ARGS --png"
+                ;;
+        esac
+    done
     print_yellow "正在编译和运行 .NET 项目..."
-    dotnet run
+    if [ -n "$DOTNET_ARGS" ]; then
+        print_yellow "参数:$DOTNET_ARGS"
+        eval "dotnet run $DOTNET_ARGS"
+    else
+        print_yellow "使用默认参数"
+        dotnet run
+    fi
 }
 main() {
     print_green "===== YuGiOh Cards Maker 启动脚本 ====="
@@ -154,7 +171,7 @@ main() {
     install_dependencies
     setup_system_limits
     create_directories
-    run_project
+    run_project "$@"
     print_green "===== YuGiOh Cards Maker 执行完成 ====="
 }
 main "$@"
