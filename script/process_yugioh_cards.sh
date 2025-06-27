@@ -18,7 +18,7 @@ if [ -z "$GITHUB_ACTIONS" ]; then
 fi
 echo "正在下载ygocdb卡片数据..."
 wget -q https://ygocdb.com/api/v0/cards.zip -O "$TMP_DIR/ygocdb_cards.zip"
-unzip -q -o "$TMP_DIR/ygocdb_cards.zip" -d "$TMP_DIR" 
+unzip -q -o "$TMP_DIR/ygocdb_cards.zip" -d "$TMP_DIR"
 jq . "$TMP_DIR/cards.json" > "$TMP_DIR/ygocdb_cards.json"
 rm "$TMP_DIR/cards.json" "$TMP_DIR/ygocdb_cards.zip"
 echo "正在下载ygoprodeck卡片数据..."

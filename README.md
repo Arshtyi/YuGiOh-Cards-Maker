@@ -13,6 +13,7 @@
 2. 不会支持其他语言
 3. 卡面元素暂时不会增加
 4. 不会有高速魔法、黑暗同调、技能卡、卡背、RD 等，但是支持 Token
+5. 暂时没有支持异画（懒得写适配)
 
 ## 关于 Token
 
@@ -31,10 +32,14 @@
     -   `typeline.conf`: 怪兽卡的 typeline 翻译
 -   `script/`: 脚本目录
     -   `process_yugioh_cards.sh`: 处理数据的脚本
+    -   `extract_ids.sh`:将 other.json 的所有卡片 id 压入 `dev/debug.txt`的脚本
+    -   `find_unofficial_cards.sh`:找出异画、非正式发售等卡片的 id
+    -   `compare_debug_figure.sh`:比对 debug 结果
 -   `cfg/`: 标准 JSON 示例
 -   `dev/`: 开发目录
     -   `debug.txt`: Debug 处理的卡片 ID 列表
--   `log/`:日志目录（默认没有日志输出到这里)
+    -   同时两个 shell 脚本的输出会在此目录下
+-   `log/`:日志目录（默认没有日志输出到这里）
 -   `figure/`: 输出目录
 -   `src/`: 代码目录
 -   `tmp/`: 临时目录

@@ -241,8 +241,7 @@ namespace Yugioh
                         // 在非debug模式下删除临时目录中的原始PNG
                         if (!debug)
                         {
-                            string imageId = card.CardImage ?? card.Id.ToString();
-                            string tmpPngPath = Path.Combine("tmp/figure", $"{imageId}.png");
+                            string tmpPngPath = Path.Combine("tmp/figure", $"{card.Id}.png");
                             if (File.Exists(tmpPngPath))
                             {
                                 try
@@ -628,8 +627,7 @@ namespace Yugioh
         {
             try
             {
-                string imageId = card.CardImage ?? card.Id.ToString();
-                string cardImagePath = Path.Combine(figureDir, $"{imageId}.png");
+                string cardImagePath = Path.Combine(figureDir, $"{card.Id}.png");
                 if (File.Exists(cardImagePath))
                 {
                     using (var cardImage = Image.Load(cardImagePath))
