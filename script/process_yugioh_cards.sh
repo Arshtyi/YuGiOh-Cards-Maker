@@ -65,7 +65,7 @@ if [[ ! -f "$final_png_path" ]]; then
         fi
         # 转换成功，删除临时文件
         rm -f "$temp_path"
-        echo "成功下载并转换为PNG: $final_png_path"
+        # echo "成功下载并转换为PNG: $final_png_path"
     else
         echo "转换PNG失败: $temp_path"
         rm -f "$temp_path"
