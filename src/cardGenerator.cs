@@ -558,6 +558,10 @@ namespace Yugioh
                 {
                     atkText = "?";
                 }
+                if (atkText.Length < 4)
+                {
+                    atkText = atkText.PadLeft(4, ' ');
+                }
                 float atkX = 870f;
                 float atkY = 1857f;
                 image.Mutate(ctx => ctx.DrawText(atkText, atkDefFont, color, new PointF(atkX, atkY)));
@@ -585,6 +589,10 @@ namespace Yugioh
                     if (defText == "-1")
                     {
                         defText = "?";
+                    }
+                    if (defText.Length < 4)
+                    {
+                        defText = defText.PadLeft(4, ' ');
                     }
                     float defX = 1156f;
                     float defY = 1857f;
