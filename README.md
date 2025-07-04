@@ -2,10 +2,10 @@
 
 ## 项目介绍
 
--   本项目是一个自动制作**简中游戏王卡片的无 GUI 工具**，若想要做制图请往别处
--   本项目很大程度是为了[Terminus](https://github.com/Arshtyi/Terminus)
--   本仓库利用 Github Actions Release 卡牌
--   项目在 Linux 上开发（`Shell+Python+C#`）
+-   本项目是一个自动制作**简中游戏王卡片的无 GUI 工具**，若为制图请往别处
+-   本项目很大程度是为了[Terminus](https://github.com/Arshtyi/Terminus)及其他依赖项目
+-   本仓库利用 Github Actions Release 卡牌（图片压缩包以及所有数据)
+-   项目在 Linux (Ubuntu24.04->Fedora41)上开发（`Shell+Python+C#`）
 
 ## 几点说明
 
@@ -13,7 +13,7 @@
 2. 不会支持其他语言
 3. 卡面元素暂时不会增加
 4. 不会有高速魔法、黑暗同调、技能卡、卡背、RD 等，但是支持 Token
-5. 暂时没有支持异画（懒得写适配)
+5. 不会支持异画（懒得写适配)和非正式卡等
 
 ## 关于 Token
 
@@ -56,7 +56,7 @@
 
 ```bash
 # 安装 .NET SDK
-sudo apt update && sudo apt install dotnet-sdk-8.0
+sudo dnf update && sudo dnf install dotnet-sdk-8.0
 # 恢复项目依赖
 dotnet restore
 ```
@@ -77,7 +77,7 @@ dotnet run
 
 ### Shell 继承参数
 
-这些参数能够由 shell 脚本继承给 C#程序.
+这些参数能够由 shell 脚本 `YuGiOh-Cards-Maker.sh`继承给 C#程序.
 
 -   `--debug`：
 

@@ -1,35 +1,31 @@
 name: Generate YuGiOh Cards
-
 on:
     schedule:
-        - cron: "0 4 * * *"
-
+        - cron: "0 3 * * *"
 jobs:
     generate-cards:
         runs-on: ubuntu-latest
+        container:
+            image: fedora:latest
         steps:
             - name: Checkout code
               uses: actions/checkout@v3
               with:
                   fetch-depth: 0
-
-            - name: Install ZSH and other dependencies
-              run: sudo apt-get update && sudo apt-get install -y zsh wget curl unzip jq imagemagick dotnet-sdk-8.0 tar xz-utils
-
+            - name: Install dependencies
+              run: |
+                  dnf update -y
+                  dnf install -y zsh wget curl unzip jq ImageMagick dotnet-sdk-8.0 tar xz git
             - name: Make shell scripts executable
               run: |
-                  chmod +x ./YuGiOh-Cards-Maker.sh
-                  chmod +x ./script/process_yugioh_cards.sh
-
+                  chmod +x ./YuGiOh-Cards-Maker.sh ./script/process_yugioh_cards.sh
             - name: Run YuGiOh-Cards-Maker script
               run: |
                   zsh ./YuGiOh-Cards-Maker.sh
               env:
                   GITHUB_ACTIONS: true
-
             - name: Create directory for tarballs
               run: mkdir -p ./tarballs
-
             - name: Pack JPG files into multiple tarballs (10000 files per tarball)
               run: |
                   jpg_files=($(find ./figure -name "*.jpg" -type f | sort))
@@ -47,21 +43,16 @@ jobs:
                       if [ $end_idx -ge $total_files ]; then
                           end_idx=$(( total_files - 1 ))
                       fi
-                      
                       temp_dir="./temp_package_$i"
                       mkdir -p "$temp_dir"
-                      
                       for (( j=start_idx; j<=end_idx; j++ )); do
                           cp "${jpg_files[$j]}" "$temp_dir/"
                       done
-                      
                       tar -cJf "./tarballs/cards_$i.tar.xz" -C "$temp_dir" .
                       echo "Created tarball cards_$i.tar.xz with $(( end_idx - start_idx + 1 )) JPG files (from $start_idx to $end_idx)"
-                      
                       # 删除临时目录
                       rm -rf "$temp_dir"
                   done
-
             - name: Delete existing release
               uses: dev-drprasad/delete-tag-and-release@v0.2.1
               with:
@@ -71,7 +62,6 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               continue-on-error: true
-
             - name: Create/Update release
               id: create_release
               uses: softprops/action-gh-release@v1

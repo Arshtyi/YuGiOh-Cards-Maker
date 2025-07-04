@@ -52,7 +52,6 @@ namespace Yugioh
                 throw;
             }
         }
-
         public static void GenerateCards(string cardsJsonPath, string assetFigureDir, string outputFigureDir, bool debug = false, bool usePng = false)
         {
             Console.WriteLine("开始卡片图像生成...");
@@ -68,21 +67,13 @@ namespace Yugioh
                 foreach (var file in Directory.GetFiles(outputFigureDir, "*.jpg")
                     .Concat(Directory.GetFiles(outputFigureDir, "*.png")))
                 {
-                    try
-                    {
-                        File.Delete(file);
-                    }
-                    catch
-                    {
-                        // 忽略删除错误
-                    }
+                    File.Delete(file);
                 }
             }
             else
             {
                 Directory.CreateDirectory(outputFigureDir);
             }
-
             var json = File.ReadAllText(cardsJsonPath);
             var jsonOptions = new JsonSerializerOptions
             {

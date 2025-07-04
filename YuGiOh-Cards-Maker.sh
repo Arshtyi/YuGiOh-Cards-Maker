@@ -3,11 +3,9 @@ set -e
 print_green() {
     echo -e "\033[0;32m$1\033[0m"
 }
-
 print_yellow() {
     echo -e "\033[0;33m$1\033[0m"
 }
-
 print_red() {
     echo -e "\033[0;31m$1\033[0m"
 }
@@ -25,28 +23,8 @@ install_dependencies() {
         return
     fi
     print_green "=== 检查系统依赖 ==="
-    if command -v apt &> /dev/null; then
-        print_yellow "使用 apt 包管理器..."
-        sudo apt update || print_red "无法更新软件包列表，但将继续尝试..."
-        INSTALL_CMD="sudo apt install -y"
-    elif command -v dnf &> /dev/null; then
-        print_yellow "使用 dnf 包管理器..."
-        INSTALL_CMD="sudo dnf install -y"
-    elif command -v yum &> /dev/null; then
-        print_yellow "使用 yum 包管理器..."
-        INSTALL_CMD="sudo yum install -y"
-    elif command -v pacman &> /dev/null; then
-        print_yellow "使用 pacman 包管理器..."
-        INSTALL_CMD="sudo pacman -S --noconfirm"
-    elif command -v zypper &> /dev/null; then
-        print_yellow "使用 zypper 包管理器..."
-        INSTALL_CMD="sudo zypper install -y"
-    else
-        print_red "无法识别的包管理器。请手动安装以下依赖: wget curl unzip jq imagemagick dotnet-sdk-8.0"
-        print_yellow "按任意键继续尝试运行项目，或按Ctrl+C退出..."
-        read -k1
-        return
-    fi
+    print_yellow "使用 dnf 包管理器..."
+    INSTALL_CMD="sudo dnf install -y"
     if ! check_command wget; then
         $INSTALL_CMD wget || print_red "无法安装 wget，某些功能可能不可用"
     fi
@@ -64,28 +42,8 @@ install_dependencies() {
     fi
     if ! check_command dotnet; then
         print_yellow "未找到 .NET SDK，尝试安装 .NET 8.0..."
-        if command -v apt &> /dev/null; then
-            wget https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-            sudo dpkg -i packages-microsoft-prod.deb
-            rm packages-microsoft-prod.deb
-            sudo apt update
-            sudo apt install -y dotnet-sdk-8.0
-        elif command -v dnf &> /dev/null || command -v yum &> /dev/null; then
-            sudo rpm -Uvh https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm
-            if command -v dnf &> /dev/null; then
-                sudo dnf install -y dotnet-sdk-8.0
-            else
-                sudo yum install -y dotnet-sdk-8.0
-            fi
-        elif command -v pacman &> /dev/null; then
-            sudo pacman -S --noconfirm dotnet-sdk
-        elif command -v zypper &> /dev/null; then
-            sudo zypper install -y dotnet-sdk-8.0
-        else
-            print_red "无法自动安装 .NET SDK。请访问 https://dotnet.microsoft.com/download/dotnet/8.0 手动安装"
-            print_yellow "按任意键继续尝试运行项目，或按Ctrl+C退出..."
-            read -k1
-        fi
+        sudo rpm -Uvh https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm
+        sudo dnf install -y dotnet-sdk-8.0
     fi
     if command -v dotnet &> /dev/null; then
         DOTNET_VERSION=$(dotnet --version)
@@ -121,9 +79,6 @@ setup_system_limits() {
 }
 create_directories() {
     print_green "=== 创建必要目录 ==="
-
-    mkdir -p tmp
-    mkdir -p figure
     mkdir -p tmp/figure
 }
 run_project() {
