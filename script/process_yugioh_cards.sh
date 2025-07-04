@@ -51,13 +51,13 @@ if [[ ! -f "$final_png_path" ]]; then
         rm -f "$temp_path"
         exit 1
     fi
-    if ! identify "$temp_path" &>/dev/null; then
+    if ! magick identify "$temp_path" &>/dev/null; then
         echo "删除损坏的图片: $temp_path"
         rm -f "$temp_path"
         exit 1
     fi
-    if convert "$temp_path" "$final_png_path"; then
-        if ! identify "$final_png_path" &>/dev/null || [ ! -s "$final_png_path" ]; then
+    if magick "$temp_path" "$final_png_path"; then
+        if ! magick identify "$final_png_path" &>/dev/null || [ ! -s "$final_png_path" ]; then
             echo "PNG转换后无效，删除: $final_png_path"
             rm -f "$final_png_path"
             rm -f "$temp_path"
@@ -73,7 +73,7 @@ if [[ ! -f "$final_png_path" ]]; then
         exit 1
     fi
 else
-    if ! identify "$final_png_path" &>/dev/null || [ ! -s "$final_png_path" ]; then
+    if ! magick identify "$final_png_path" &>/dev/null || [ ! -s "$final_png_path" ]; then
         echo "发现无效的PNG文件，重新下载: $url"
         rm -f "$final_png_path"
         # 递归调用自身以重新下载
@@ -134,7 +134,7 @@ if [ -d "$TMP_DIR/figure" ]; then
     corrupted_count=0
     for file in "$TMP_DIR/figure"/*.png; do
         if [ -f "$file" ]; then
-            if ! identify "$file" &>/dev/null || [ ! -s "$file" ]; then
+            if ! magick identify "$file" &>/dev/null || [ ! -s "$file" ]; then
                 echo "删除无效的PNG图片文件: $file"
                 rm -f "$file"
                 ((corrupted_count++))

@@ -59,7 +59,7 @@ install_dependencies() {
     if ! check_command jq; then
         $INSTALL_CMD jq || print_red "无法安装 jq，某些功能可能不可用"
     fi
-    if ! check_command convert || ! check_command identify; then
+    if ! check_command magick; then
         $INSTALL_CMD imagemagick || print_red "无法安装 ImageMagick，某些功能可能不可用"
     fi
     if ! check_command dotnet; then

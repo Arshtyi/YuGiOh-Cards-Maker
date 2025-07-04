@@ -10,7 +10,6 @@ def main():
     typeline_conf_path = project_root / "res" / "typeline.conf"
     typeline_dict = {}
     untranslated_typelines = 0
-    
     try:
         with open(typeline_conf_path, 'r', encoding='utf-8') as f:
             for line in f:
@@ -24,7 +23,6 @@ def main():
     except Exception as e:
         print(f"加载typeline配置文件时出错: {e}")
         sys.exit(1)
-    
     prodeck_file = tmp_dir / "ygoprodeck_cardinfo.json"
     try:
         with open(prodeck_file, 'r', encoding='utf-8') as f:
@@ -33,7 +31,6 @@ def main():
     except Exception as e:
         print(f"加载ygoprodeck_cardinfo.json时出错: {e}")
         sys.exit(1)
-    
     cdb_file = tmp_dir / "ygocdb_cards.json"
     try:
         with open(cdb_file, 'r', encoding='utf-8') as f:
@@ -42,13 +39,11 @@ def main():
     except Exception as e:
         print(f"加载ygocdb_cards.json时出错: {e}")
         sys.exit(1)
-    
     id_to_cn_name = {}
     id_to_description = {}
     id_to_pendulum_description = {}
     id_to_type_bracket = {}  # 存储卡片types中括号内的内容
     untranslated_typelines = 0  # 声明全局变量
-    
     for card_id_str, card_info in cdb_data.items():
         card_id = card_info.get('id')
         cn_name = card_info.get('cn_name')
@@ -71,7 +66,6 @@ def main():
                         id_to_type_bracket[card_id] = bracket_content
         if card_id and cn_name:
             id_to_cn_name[card_id] = cn_name
-    
     id_to_scale = {}
     id_to_attribute = {}
     id_to_atk = {}
@@ -79,7 +73,6 @@ def main():
     id_to_level = {}
     id_to_linkval = {}
     id_to_linkmarkers = {}
-    
     for card in prodeck_data.get('data', []):
         card_id = card.get('id')
         if card_id and 'scale' in card:
@@ -97,7 +90,6 @@ def main():
         if card_id and 'linkmarkers' in card:
             linkmarkers = card.get('linkmarkers', [])
             id_to_linkmarkers[card_id] = [marker.lower() for marker in linkmarkers]
-    
     result = {}
     for card in prodeck_data.get('data', []):
         card_id = card.get('id')
@@ -148,7 +140,6 @@ def main():
                             if card_id in id_to_type_bracket:
                                 bracket_content = id_to_type_bracket[card_id]
                                 parts = bracket_content.split('|')
-                                
                                 if parts and parts[0].strip() == "怪兽" and len(typeline) > 0:
                                     first_type = typeline[0]
                                     if first_type in typeline_dict:
@@ -169,7 +160,6 @@ def main():
                                     final_typeline = [part.strip() for part in reversed_parts if part.strip()]
                                 if final_typeline:
                                     result[card_id]["typeline"] = f"【{' / '.join(final_typeline)}】"
-                    
                     if card_type == 'spell' or card_type == 'trap':
                         result[card_id]["frameType"] = card_type
                         result[card_id]["attribute"] = card_type
@@ -184,11 +174,9 @@ def main():
                     result[card_id]["cardImage"] = image_filename
             else:
                 print(f"卡片ID {card_id} 没有找到对应的中文名称，跳过该卡片")
-    
     print(f"处理完成，共生成{len(result)}张卡的数据")
     if untranslated_typelines > 0:
         print(f"警告: 有{untranslated_typelines}个typeline未能在typeline.conf中找到对应翻译")
-    
     output_file = tmp_dir / "cards.json"
     try:
         other_json_path = project_root / "res" / "other.json"
@@ -214,7 +202,7 @@ def main():
                             final_png_path = tmp_dir / "figure" / f"{card_id}.png"
                             if os.path.exists(final_png_path) and os.path.getsize(final_png_path) > 0:
                                 try:
-                                    subprocess.run(["identify", final_png_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                    subprocess.run(["magick", "identify", final_png_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                                     skip_count += 1
                                     continue
                                 except subprocess.CalledProcessError:
@@ -226,7 +214,7 @@ def main():
                                 urllib.request.urlretrieve(image_url, temp_path)
                                 # 检查图片是否有效
                                 try:
-                                    subprocess.run(["identify", temp_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                    subprocess.run(["magick", "identify", temp_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                                 except subprocess.CalledProcessError:
                                     print(f"下载的图片无效: {card_id}")
                                     os.remove(temp_path)
@@ -234,9 +222,9 @@ def main():
                                     continue
                                 # 转换为PNG
                                 try:
-                                    subprocess.run(["convert", temp_path, final_png_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                    subprocess.run(["magick", temp_path, final_png_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                                     # 检查转换后的PNG是否有效
-                                    subprocess.run(["identify", final_png_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                    subprocess.run(["magick", "identify", final_png_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                                     # 删除临时文件
                                     os.remove(temp_path)
                                     download_count += 1
@@ -255,7 +243,7 @@ def main():
                         print(f"other.json卡片图片下载完成: 成功{download_count}张, 跳过{skip_count}张, 失败{error_count}张")
             except Exception as e:
                 print(f"读取other.json时出错: {e}，将跳过合并")
-        
+
         if other_data:
             print("正在对other.json数据按name属性进行排序，相同name的按id排序...")
             sorted_other_data = {}
@@ -267,27 +255,23 @@ def main():
             sorted_other_data = {card_id: card_info for card_id, card_info in card_items}
             other_data = sorted_other_data
             print(f"排序完成，共排序了{len(other_data)}条记录")
-            
             try:
                 with open(other_json_path, 'w', encoding='utf-8') as f:
                     json.dump(other_data, f, ensure_ascii=False, indent=4)
                 print(f"已将排序后的数据写回 {other_json_path}")
             except Exception as e:
                 print(f"写入排序后的数据到 {other_json_path} 时出错: {e}")
-            
             for card_id, card_info in other_data.items():
                 if card_id in result:
                     result[card_id].update(card_info)
                 else:
                     result[card_id] = card_info
             print(f"合并other.json后，共有{len(result)}张卡的数据")
-        
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(result, f, ensure_ascii=False, indent=2)
         print(f"成功将结果保存到 {output_file}")
     except Exception as e:
         print(f"保存结果到 {output_file} 时出错: {e}")
         sys.exit(1)
-
 if __name__ == "__main__":
     main()
