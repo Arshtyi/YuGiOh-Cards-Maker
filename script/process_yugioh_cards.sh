@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/bash
 SCRIPT_DIR=$(dirname "$0")
 cd "$SCRIPT_DIR/.." || exit 1
 TMP_DIR="tmp"
@@ -33,7 +33,7 @@ if [ $TOTAL -eq 0 ]; then
     exit 1
 fi
 cat > "$TMP_DIR/download_worker.sh" << 'EOF'
-#!/bin/zsh
+#!/bin/bash
 url="$1"
 filename=$(basename "$url")
 output_path="tmp/figure/$filename"

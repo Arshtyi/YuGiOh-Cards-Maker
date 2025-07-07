@@ -15,13 +15,13 @@ jobs:
             - name: Install dependencies
               run: |
                   dnf update -y
-                  dnf install -y zsh wget curl unzip jq ImageMagick dotnet-sdk-8.0 tar xz git
+                  dnf install -y wget curl unzip jq ImageMagick dotnet-sdk-8.0 tar xz git
             - name: Make shell scripts executable
               run: |
                   chmod +x ./YuGiOh-Cards-Maker.sh ./script/process_yugioh_cards.sh
             - name: Run YuGiOh-Cards-Maker script
               run: |
-                  zsh ./YuGiOh-Cards-Maker.sh
+                  bash ./YuGiOh-Cards-Maker.sh
               env:
                   GITHUB_ACTIONS: true
             - name: Create directory for tarballs

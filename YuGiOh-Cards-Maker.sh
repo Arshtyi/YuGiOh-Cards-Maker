@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/bash
 set -e
 print_green() {
     echo -e "\033[0;32m$1\033[0m"
@@ -49,15 +49,14 @@ install_dependencies() {
         DOTNET_VERSION=$(dotnet --version)
         print_green "已安装的 .NET 版本: $DOTNET_VERSION"
         if [[ "$DOTNET_VERSION" != 8.* ]]; then
-            print_yellow "警告: 项目需要 .NET 8.0，但当前版本是 $DOTNET_VERSION"
-            print_yellow "建议访问 https://dotnet.microsoft.com/download/dotnet/8.0 安装 .NET 8.0"
-            print_yellow "按任意键继续尝试运行项目，或按Ctrl+C退出..."
-            read -k1
+            print_yellow "警告: 项目需要 .NET 8.0，但当前版本是 $DOTNET_VERSION"        print_yellow "建议访问 https://dotnet.microsoft.com/download/dotnet/8.0 安装 .NET 8.0"
+        print_yellow "按任意键继续尝试运行项目，或按Ctrl+C退出..."
+        read -n1
         fi
     else
         print_red "无法检测到 .NET SDK，项目可能无法运行"
         print_yellow "按任意键继续尝试运行项目，或按Ctrl+C退出..."
-        read -k1
+        read -n1
     fi
 }
 setup_system_limits() {
