@@ -159,7 +159,7 @@ def main():
                                     reversed_parts.reverse()
                                     final_typeline = [part.strip() for part in reversed_parts if part.strip()]
                                 if final_typeline:
-                                    result[card_id]["typeline"] = f"【{' / '.join(final_typeline)}】"
+                                    result[card_id]["typeline"] = f"【{'/'.join(final_typeline)}】"
                     if card_type == 'spell' or card_type == 'trap':
                         result[card_id]["frameType"] = card_type
                         result[card_id]["attribute"] = card_type
