@@ -10,6 +10,6 @@
     "frameType": "link",
     "linkVal": 3,
     "linkMarkers": ["top", "bottom-left", "bottom-right"],
-    "typeline": "【种族 / 连接 / 效果】",
+    "typeline": "【种族/连接/效果】",
     "cardImage": "example"
 }
