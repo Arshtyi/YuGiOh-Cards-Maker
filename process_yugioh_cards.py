@@ -145,7 +145,7 @@ def main():
                                     if first_type in typeline_dict:
                                         first_type_translated = typeline_dict[first_type]
                                     else:
-                                        print(f"错误: 卡片ID {card_id} ({cn_name}) 的typeline '{first_type}' 未在typeline.conf中找到对应翻译")
+                                        print(f"错误: ID {card_id} ({cn_name}) 的typeline '{first_type}' 未在typeline.conf中找到对应翻译")
                                         first_type_translated = first_type
                                         untranslated_typelines += 1
                                     remaining_parts = parts[1:]
@@ -173,7 +173,7 @@ def main():
                     image_filename = os.path.splitext(image_filename)[0]
                     result[card_id]["cardImage"] = image_filename
             else:
-                print(f"卡片ID {card_id} 没有找到对应的中文名称，跳过该卡片")
+                print(f"ID {card_id} 没有找到对应的中文名称，跳过该卡片")
     print(f"处理完成，共生成{len(result)}张卡的数据")
     if untranslated_typelines > 0:
         print(f"警告: 有{untranslated_typelines}个typeline未能在typeline.conf中找到对应翻译")

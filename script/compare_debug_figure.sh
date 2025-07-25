@@ -15,7 +15,7 @@ fi
 if [ -f "dev/debug.txt" ]; then
     DEBUG_IDS=$(grep -o '^[0-9]*$' dev/debug.txt | sort -n)
     DEBUG_COUNT=$(echo "$DEBUG_IDS" | wc -l)
-    echo "在dev/debug.txt中找到 $DEBUG_COUNT 个卡片ID"
+    echo "在dev/debug.txt中找到 $DEBUG_COUNT 个ID"
 else
     echo "错误: dev/debug.txt文件不存在"
     exit 1

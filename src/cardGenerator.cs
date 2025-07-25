@@ -99,7 +99,7 @@ namespace Yugioh
                     cardsToProcess = new List<Card>();
                     foreach (var idStr in debugIds)
                     {
-                        if (dict.TryGetValue(idStr, out Card card) && !string.IsNullOrEmpty(card.FrameType))
+                        if (dict.TryGetValue(idStr, out Card? card) && card != null && !string.IsNullOrEmpty(card.FrameType))
                         {
                             cardsToProcess.Add(card);
                         }
@@ -112,7 +112,7 @@ namespace Yugioh
                     Console.WriteLine("Debug模式下不会删除tmp/figure目录下的原始PNG文件");
                     if (cardsToProcess.Count == 0)
                     {
-                        Console.WriteLine("警告: debug.txt中没有匹配到任何有效的卡片ID");
+                        Console.WriteLine("警告: debug.txt中没有匹配到任何有效的ID");
                     }
                 }
                 else
@@ -144,7 +144,7 @@ namespace Yugioh
                     }
                     if (frameFile == null)
                     {
-                        Console.WriteLine($"错误: 无法找到卡框，卡片ID: {card.Id}, 名称: {card.Name}, 框架类型: {frameType}");
+                        Console.WriteLine($"错误: 无法找到卡框，ID: {card.Id}, 名称: {card.Name}, 框架类型: {frameType}");
                         Interlocked.Increment(ref failed);
                         return;
                     }
@@ -595,7 +595,7 @@ namespace Yugioh
                 Console.WriteLine($"添加攻击力/守备力/链接值失败: {ex.Message}");
             }
         }
-        // 卡片ID
+        // ID
         private static void AddCardID(Image image, Card card)
         {
             try
@@ -604,7 +604,7 @@ namespace Yugioh
                 string fontPath = Path.Combine("asset", "font", "special", "ygo-password.ttf");
                 if (!File.Exists(fontPath))
                 {
-                    Console.WriteLine($"错误: 未找到卡片ID字体文件: {fontPath}");
+                    Console.WriteLine($"错误: 未找到ID字体文件: {fontPath}");
                     return;
                 }
                 var fontCollection = new FontCollection();
@@ -641,12 +641,12 @@ namespace Yugioh
                 }
                 else
                 {
-                    Console.WriteLine($"警告: 未找到卡图: {cardImagePath}，卡片ID={card.Id}, 名称={card.Name}");
+                    Console.WriteLine($"警告: 未找到卡图: {cardImagePath}，ID={card.Id}, 名称={card.Name}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加卡图失败: {ex.Message}, 卡片ID={card.Id}, 名称={card.Name}");
+                Console.WriteLine($"添加卡图失败: {ex.Message}, ID={card.Id}, 名称={card.Name}");
             }
         }
         // 魔法卡/陷阱卡字样及icon
