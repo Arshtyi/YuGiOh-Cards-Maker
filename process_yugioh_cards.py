@@ -44,7 +44,7 @@ def main():
     id_to_pendulum_description = {}
     id_to_type_bracket = {}  # 存储卡片types中括号内的内容
     untranslated_typelines = 0  # 声明全局变量
-    for card_info in cdb_data.items():
+    for card_id_str, card_info in cdb_data.items():
         card_id = card_info.get('id')
         cn_name = card_info.get('cn_name')
         if 'text' in card_info and isinstance(card_info['text'], dict):
