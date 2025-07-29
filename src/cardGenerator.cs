@@ -819,10 +819,11 @@ namespace Yugioh
                 float currentMaxEffectiveLength = baseMaxEffectiveLength;
                 if (totalEffectiveLines > 5)
                 {
-                    fontSize = 30f;
+                    fontSize = 33f;
                     lineHeight = fontSize * 1.1f;
-                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 30f);
-                }else if (totalEffectiveLines > 4)
+                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 33f);
+                }
+                else if (totalEffectiveLines > 4)
                 {
                     fontSize = 35f;
                     lineHeight = fontSize * 1.15f;
