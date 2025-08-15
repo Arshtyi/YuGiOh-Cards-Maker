@@ -1,0 +1,128 @@
+name: YuGiOh Cards Data Processing and Release
+on:
+    schedule:
+        - cron: "0 16 * * *"
+    push:
+        branches:
+            - main
+jobs:
+    process-and-release:
+        runs-on: ubuntu-latest
+        container:
+            image: fedora:latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+              with:
+                  fetch-depth: 0
+
+            - name: Install dependencies
+              run: |
+                  dnf update -y
+                  dnf install -y wget curl unzip jq ImageMagick dotnet-sdk-8.0 tar xz git python3 python3-pip
+
+            - name: Make shell scripts executable
+              run: |
+                  chmod +x ./YuGiOh-Cards-Maker.sh ./script/process_yugioh_cards.sh
+
+            - name: Delete existing release
+              uses: dev-drprasad/delete-tag-and-release@v0.2.1
+              with:
+                  tag_name: latest
+                  delete_release: true
+                  repo: ${{ github.repository }}
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              continue-on-error: true
+
+            - name: Run YuGiOh-Cards-Maker script
+              run: |
+                  bash ./YuGiOh-Cards-Maker.sh
+              env:
+                  GITHUB_ACTIONS: true
+
+            - name: Create directory for tarballs
+              run: mkdir -p ./tarballs
+
+            - name: Pack forbidden and limited list
+              run: |
+                  tar -cJf "./tarballs/forbidden_and_limited_list.tar.xz" -C "./res/limit" .
+                  echo "Created tarball forbidden_and_limited_list.tar.xz with files from res/limit directory"
+
+            - name: Pack JPG files into multiple tarballs (10000 files per tarball)
+              run: |
+                  jpg_files=($(find ./figure -name "*.jpg" -type f | sort))
+                  total_files=${#jpg_files[@]}
+                  if [ $total_files -eq 0 ]; then
+                    echo "No JPG files found in figure directory"
+                    exit 1
+                  fi
+                  files_per_package=10000
+                  total_packages=$(( (total_files + files_per_package - 1) / files_per_package ))
+                  echo "总文件数: $total_files, 每包文件数: $files_per_package, 总包数: $total_packages"
+                  for (( i=0; i<$total_packages; i++ )); do
+                      start_idx=$(( i * files_per_package ))
+                      end_idx=$(( start_idx + files_per_package - 1 ))
+                      if [ $end_idx -ge $total_files ]; then
+                          end_idx=$(( total_files - 1 ))
+                      fi
+                      temp_dir="./temp_package_$i"
+                      mkdir -p "$temp_dir"
+                      for (( j=start_idx; j<=end_idx; j++ )); do
+                          cp "${jpg_files[$j]}" "$temp_dir/"
+                      done
+                      tar -cJf "./tarballs/cards_$i.tar.xz" -C "$temp_dir" .
+                      echo "Created tarball cards_$i.tar.xz with $(( end_idx - start_idx + 1 )) JPG files (from $start_idx to $end_idx)"
+                      # 删除临时目录
+                      rm -rf "$temp_dir"
+                  done
+
+            - name: Count JPG files and create release body
+              id: release_body
+              run: |
+                  total_files=$(find ./figure -name "*.jpg" -type f | wc -l)
+                  echo "total_jpg=$total_files" >> $GITHUB_OUTPUT
+
+            - name: Generate checksums for compressed files
+              run: |
+                  mkdir -p ./checksums
+                  echo "生成 forbidden_and_limited_list.tar.xz 的校验码文件..."
+                  (cd ./tarballs && sha256sum forbidden_and_limited_list.tar.xz) > ./checksums/forbidden_and_limited_list.tar.xz.sha256
+                  (cd ./tarballs && md5sum forbidden_and_limited_list.tar.xz) > ./checksums/forbidden_and_limited_list.tar.xz.md5
+                  echo "生成卡图压缩包的校验码文件..."
+                  for tarball in ./tarballs/cards_*.tar.xz; do
+                      filename=$(basename "$tarball")
+                      echo "生成 $filename 的校验码文件..."
+                      (cd ./tarballs && sha256sum $(basename "$tarball")) > "./checksums/$filename.sha256"
+                      (cd ./tarballs && md5sum $(basename "$tarball")) > "./checksums/$filename.md5"
+                  done
+                  echo "已生成的校验文件列表:"
+                  ls -la ./checksums/
+
+            - name: Create/Update release
+              id: create_release
+              uses: softprops/action-gh-release@v1
+              with:
+                  tag_name: latest
+                  name: YuGiOh Cards & Banlist Data
+                  body: |
+                      自动生成的卡图、卡牌信息和禁限卡表,共包含${{ steps.release_body.outputs.total_jpg }}张JPG图片,每个压缩包包含最多10000张JPG图片,另外包含最新的禁限卡表
+
+                      所有压缩包文件均附带对应的SHA-256和MD5校验码文件(.sha256和.md5).可以使用以下命令验证文件完整性：
+                      ```
+                      # 验证SHA-256校验码
+                      sha256sum -c 文件名.sha256
+
+                      # 验证MD5校验码
+                      md5sum -c 文件名.md5
+                      ```
+                  files: |
+                      ./tarballs/cards_*.tar.xz
+                      ./tarballs/forbidden_and_limited_list.tar.xz
+                      ./tmp/cards.json
+                      ./checksums/*.sha256
+                      ./checksums/*.md5
+                  draft: false
+                  prerelease: false
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

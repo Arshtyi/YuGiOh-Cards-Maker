@@ -1,0 +1,11 @@
+/tmp
+/figure
+/obj
+/bin
+/log
+/token
+dev/unofficial_cards.txt
+dev/debug_results.txt
+/.conda
+*.vscode
+/res/limit/

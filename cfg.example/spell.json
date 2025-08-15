@@ -1,0 +1,11 @@
+{
+    "name": "魔法",
+    "id": 12345678,
+    "description": "效果",
+    "cardType": "spell",
+    "frameType": "spell",
+    "attribute": "spell",
+    "race": "normal",
+    "cardImage": "example",
+    "limit": [{ "ocg": "forbbiden", "tcg": "limited", "md": "semi-limited" }]
+}
