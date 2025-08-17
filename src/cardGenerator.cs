@@ -927,7 +927,14 @@ namespace Yugioh
                 }
                 float lineHeight;
                 float currentMaxEffectiveLength = baseMaxEffectiveLength;
-                if (totalEffectiveLines > 8)
+                // Console.WriteLine($"总有效行数: {totalEffectiveLines}");
+                if (totalEffectiveLines > 10)
+                {
+                    fontSize = 28f;
+                    lineHeight = fontSize * 1.0f;
+                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 28f);
+                }
+                else if (totalEffectiveLines > 8)
                 {
                     fontSize = 33f;
                     lineHeight = fontSize * 1.1f;
