@@ -9,3 +9,6 @@ dev/debug_results.txt
 /.conda
 *.vscode
 /res/limit/
+__pycache__/
+dev/lines.txt
+/fig

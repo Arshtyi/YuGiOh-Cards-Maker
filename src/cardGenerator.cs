@@ -277,7 +277,7 @@ namespace Yugioh
                 }
                 else if (effectiveLength <= 12)
                 {
-                    fontSize = 90f;
+                    fontSize = 88f;
                     posYOffset = 30f;
                 }
                 else if (effectiveLength <= 14)
@@ -872,7 +872,7 @@ namespace Yugioh
                 Console.WriteLine($"绘制灵摆效果描述失败: {ex.Message}");
             }
         }
-        // 卡牌效果
+        // 卡牌情报
         private static void DrawCardDescription(Image image, Card card)
         {
             try
@@ -891,25 +891,30 @@ namespace Yugioh
                 }
                 string[] originalLines = descriptionText.Split('\n');
                 float baseMaxEffectiveLength = 29f;
-                int totalEffectiveLines = 0;
+                int newline_wraps = Math.Max(0, originalLines.Length - 1);
+                int char_wraps = 0;
+                int totalLinesByCalc = 0;
                 foreach (string line in originalLines)
                 {
                     if (string.IsNullOrEmpty(line))
                     {
-                        totalEffectiveLines += 1;
+                        totalLinesByCalc += 1;
                         continue;
                     }
                     float effectiveLength = CalculateEffectiveLength(line);
                     if (effectiveLength > baseMaxEffectiveLength)
                     {
                         List<string> subLines = SplitLongLine(line, baseMaxEffectiveLength);
-                        totalEffectiveLines += subLines.Count;
+                        totalLinesByCalc += subLines.Count;
+                        char_wraps += Math.Max(0, subLines.Count - 1);
                     }
                     else
                     {
-                        totalEffectiveLines += 1;
+                        totalLinesByCalc += 1;
                     }
                 }
+                int totalLines = originalLines.Length + char_wraps;
+                Console.WriteLine($"[Debug] ID={card.Id}, Name={card.Name}, newline_wraps={newline_wraps}, char_wraps={char_wraps}, totalLines={totalLines}");
                 var frameType = card.FrameType?.ToLower() ?? "";
                 bool isPendulum = frameType.Contains("pendulum");
                 bool isSpellOrTrap = card.CardType?.ToLower() == "spell" || card.CardType?.ToLower() == "trap";
@@ -927,29 +932,48 @@ namespace Yugioh
                 }
                 float lineHeight;
                 float currentMaxEffectiveLength = baseMaxEffectiveLength;
-                // Console.WriteLine($"总有效行数: {totalEffectiveLines}");
-                if (totalEffectiveLines > 10)
+                if (newline_wraps >= 7)
                 {
-                    fontSize = 28f;
+                    if (char_wraps >= 1) fontSize = 28f;
+                    else fontSize = 32f;
+                }
+                else if (newline_wraps >= 5)
+                {
+                    if (char_wraps >= 3) fontSize = 30f;
+                    else fontSize = 33f;
+                }
+                else if (newline_wraps >= 3)
+                {
+                    if (char_wraps >= 4) fontSize = 31f;
+                    else fontSize = 33f;
+                }
+                else if (newline_wraps == 2)
+                {
+                    if (char_wraps >= 4) fontSize = 34f;
+                    else fontSize = 38f;
+                }
+                else if (newline_wraps == 1)
+                {
+                    if (char_wraps >= 4) fontSize = 36f;
+                    else fontSize = 40f;
+                }
+                else
+                {
+                    fontSize = 40f;
+                }
+                if (fontSize <= 30f)
+                {
                     lineHeight = fontSize * 1.0f;
-                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 28f);
                 }
-                else if (totalEffectiveLines > 8)
+                else if (fontSize <= 35f)
                 {
-                    fontSize = 33f;
                     lineHeight = fontSize * 1.1f;
-                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 33f);
-                }
-                else if (totalEffectiveLines > 6)
-                {
-                    fontSize = 35f;
-                    lineHeight = fontSize * 1.1f;
-                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 35f);
                 }
                 else
                 {
                     lineHeight = fontSize * 1.2f;
                 }
+                currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / fontSize);
                 Font descFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
                 var textOptions = new TextOptions(descFont)
                 {

@@ -350,6 +350,73 @@ def main():
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(result, f, ensure_ascii=False, indent=2)
         print(f"成功将结果保存到 {output_file}")
+        try:
+            def is_latin_character(c: str) -> bool:
+                if c in ('「', '」', '『', '』', '"', '"', "'", "'"):
+                    return False
+                return ord(c) <= 127
+            def is_special_separator(c: str) -> bool:
+                return c in ('·', '-', '_', '=', '+', '/')
+            def char_effective_length(c: str) -> float:
+                if is_latin_character(c):
+                    return 0.5
+                if is_special_separator(c):
+                    return 0.7
+                return 1.0
+            def split_long_line(line: str, max_effective: float = 29.0):
+                if sum(char_effective_length(ch) for ch in line) <= max_effective:
+                    return [line]
+                parts = []
+                current = []
+                current_len = 0.0
+                for ch in line:
+                    cl = char_effective_length(ch)
+                    if current_len + cl > max_effective:
+                        parts.append(''.join(current))
+                        current = [ch]
+                        current_len = cl
+                    else:
+                        current.append(ch)
+                        current_len += cl
+                if current:
+                    parts.append(''.join(current))
+                return parts
+
+            lines_list = []
+            for card_id, card_info in result.items():
+                name = card_info.get('name', '')
+                typeline = card_info.get('typeline', '')
+                description = card_info.get('description', '')
+                if typeline:
+                    combined = typeline + '\n' + (description or '')
+                else:
+                    combined = description or ''
+                original_lines = combined.split('\n')
+                newline_wraps = combined.count('\n')
+                char_wraps = 0
+                total_effective_lines = 0
+                for ln in original_lines:
+                    if ln == '':
+                        total_effective_lines += 1
+                        continue
+                    parts = split_long_line(ln, 29.0)
+                    if parts:
+                        total_effective_lines += len(parts)
+                        char_wraps += max(0, len(parts) - 1)
+                    else:
+                        total_effective_lines += 1
+                total_lines = len(original_lines) + char_wraps
+                lines_list.append((total_lines, newline_wraps, char_wraps, name, card_id))
+            lines_list.sort(key=lambda x: (x[0], x[1], x[2]), reverse=True)
+            dev_dir = project_root / 'dev'
+            dev_dir.mkdir(parents=True, exist_ok=True)
+            lines_file = dev_dir / 'lines.txt'
+            with open(lines_file, 'w', encoding='utf-8') as lf:
+                for total, nwraps, cwraps, name, cid in lines_list:
+                    lf.write(f"{name},{cid},{total},{nwraps},{cwraps}\n")
+            print(f"已将行数统计写入 {lines_file}")
+        except Exception as e:
+            print(f"生成 dev/lines.txt 时出错: {e}")
     except Exception as e:
         print(f"保存结果到 {output_file} 时出错: {e}")
         sys.exit(1)
