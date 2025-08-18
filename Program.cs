@@ -4,9 +4,9 @@ class Program
 {
     static void Main(string[] args)
     {
-        var cardsJson = "tmp/cards.json";
-        var assetFigureDir = "asset/figure";
-        var outputFigureDir = "figure";
+    var cardsJsonPath = "tmp/cards.json";
+    var assetFigureDir = "asset/figure";
+    var outputArtworkDir = "figure";
         bool debug = false;
         bool usePng = false;
         foreach (var arg in args)
@@ -28,6 +28,6 @@ class Program
         {
             Console.WriteLine("使用PNG格式: 将生成无损PNG图像而非JPG图像");
         }
-        CardGenerator.GenerateCards(cardsJson, assetFigureDir, outputFigureDir, debug, usePng);
+    CardGenerator.GenerateCardImages(cardsJsonPath, assetFigureDir, outputArtworkDir, debug, usePng);
     }
 }

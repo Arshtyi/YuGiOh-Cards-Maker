@@ -19,17 +19,18 @@ namespace Yugioh
         private static readonly RectangleF CardDescriptionArea = new RectangleF(110f, 1533f, 1283f - 110f, 1897f - 1533f);
         private static readonly string FontPath = Path.Combine("asset", "font", "sc", "XinHuaKaiTi.ttf");
         // 资源目录
-        private static readonly string CardsDir = "cards";
+    // 存放卡框(frame)图片的目录
+    private static readonly string FramesDir = "cards";
         private static readonly string MasksDir = "masks";
         private static readonly string AttributesDir = "attributes";
         private static readonly string IndicatorsDir = "indicators";
         private static readonly string IconsDir = "icons";
         private static readonly string ArrowsDir = "arrows";
-        private static Font? nameBlackFont;
-        private static Font? nameWhiteFont;
-        private static Color nameBlackColor;
-        private static Color nameWhiteColor;
-        private static Color nameShadowColor;
+    private static Font? titleBlackFont;
+    private static Font? titleWhiteFont;
+    private static Color titleBlackColor;
+    private static Color titleWhiteColor;
+    private static Color titleShadowColor;
         private static FontFamily fontFamily;
         private static FontCollection LoadFonts()
         {
@@ -39,11 +40,11 @@ namespace Yugioh
                 var fontFamily = fontCollection.Add(FontPath);
                 CardGenerator.fontFamily = fontFamily;
                 float fontSize = 95f;
-                nameBlackFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
-                nameWhiteFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
-                nameBlackColor = Color.Black;
-                nameWhiteColor = Color.White;
-                nameShadowColor = Color.FromRgba(0, 0, 0, 80);
+                titleBlackFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
+                titleWhiteFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
+                titleBlackColor = Color.Black;
+                titleWhiteColor = Color.White;
+                titleShadowColor = Color.FromRgba(0, 0, 0, 80);
                 return fontCollection;
             }
             catch (Exception ex)
@@ -52,7 +53,7 @@ namespace Yugioh
                 throw;
             }
         }
-        public static void GenerateCards(string cardsJsonPath, string assetFigureDir, string outputFigureDir, bool debug = false, bool usePng = false)
+    public static void GenerateCardImages(string cardsJsonPath, string assetFigureDir, string outputFigureDir, bool debug = false, bool usePng = false)
         {
             Console.WriteLine("开始卡片图像生成...");
             if (!File.Exists(cardsJsonPath))
@@ -137,7 +138,7 @@ namespace Yugioh
                 {
                     var frameType = card.FrameType?.ToLower() ?? "normal";
                     string? frameFile = null;
-                    string exactFramePath = Path.Combine(assetFigureDir, CardsDir, $"card-{frameType}.png");
+                    string exactFramePath = Path.Combine(assetFigureDir, FramesDir, $"card-{frameType}.png");
                     if (File.Exists(exactFramePath))
                     {
                         frameFile = exactFramePath;
@@ -154,9 +155,9 @@ namespace Yugioh
                     using (var image = Image.Load(frameFile))
                     {
                         // 属性
-                        AddAttributeImage(image, card, assetFigureDir);
+                        DrawAttributeImage(image, card, assetFigureDir);
                         // 卡图
-                        AddCardImage(image, card, "tmp/figure");
+                        DrawCardArtwork(image, card, "tmp/figure");
                         // 灵摆卡->灵摆框
                         if (frameType.Contains("pendulum"))
                         {
@@ -190,22 +191,22 @@ namespace Yugioh
                             }
                         }
                         // 攻守条
-                        AddAtkDefImage(image, card, assetFigureDir);
+                        DrawAtkDefBar(image, card, assetFigureDir);
                         // 灵摆刻度
-                        AddPendulumScale(image, card);
+                        DrawPendulumScale(image, card);
                         // 星级/阶级图标
-                        AddLevelOrRank(image, card, assetFigureDir);
+                        DrawLevelOrRank(image, card, assetFigureDir);
                         // Link箭头
-                        AddLinkArrows(image, card, assetFigureDir);
+                        DrawLinkArrows(image, card, assetFigureDir);
                         bool isXyzMonster = frameType.Contains("xyz");
                         bool isSpellOrTrap = card.CardType?.ToLower() == "spell" || card.CardType?.ToLower() == "trap";
                         bool isSpecialCard = isXyzMonster || isSpellOrTrap;
                         // 卡名
                         DrawCardName(image, card.Name, isSpecialCard);
                         // ID
-                        AddCardID(image, card);
+                        DrawCardID(image, card);
                         // 魔法卡/陷阱卡类型文字
-                        AddCardTypeText(image, card);
+                        DrawCardTypeText(image, card);
                         // 灵摆效果
                         DrawPendulumDescription(image, card);
                         // 卡牌效果
@@ -269,7 +270,7 @@ namespace Yugioh
                 float fontSize = 95f;
                 float posYOffset = 30f;
                 bool hasSpecialSeparator = cardName.Contains("·") || cardName.Contains("-") || cardName.Contains("・");
-                float effectiveLength = CalculateEffectiveLength(cardName);
+                float effectiveLength = ComputeEffectiveCharLength(cardName);
                 if (effectiveLength <= 10)
                 {
                     fontSize = 105f;
@@ -310,14 +311,14 @@ namespace Yugioh
                     fontSize = 46f;
                     posYOffset = 48f;
                 }
-                Font nameFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
-                Color textColor = isSpecialCard ? nameWhiteColor : nameBlackColor;
+                Font titleFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
+                Color textColor = isSpecialCard ? titleWhiteColor : titleBlackColor;
                 float posX = CardNameArea.X + 20f;
                 float posY = CardNameArea.Y + posYOffset;
                 image.Mutate(ctx =>
                 {
-                    ctx.DrawText(cardName, nameFont, nameShadowColor, new PointF(posX + 3f, posY + 3f));
-                    ctx.DrawText(cardName, nameFont, textColor, new PointF(posX, posY));
+                    ctx.DrawText(cardName, titleFont, titleShadowColor, new PointF(posX + 3f, posY + 3f));
+                    ctx.DrawText(cardName, titleFont, textColor, new PointF(posX, posY));
                 });
             }
             catch (Exception ex)
@@ -325,18 +326,18 @@ namespace Yugioh
                 Console.WriteLine($"绘制卡名失败: {ex.Message}");
             }
         }
-        // 计算卡名有效长度
-        private static float CalculateEffectiveLength(string cardName)
+    // 计算卡名有效长度（按字符类型赋予不同权重）
+    private static float ComputeEffectiveCharLength(string cardName)
         {
             float effectiveLength = 0;
             foreach (char c in cardName)
             {
-                if (IsLatinCharacter(c))
+        if (IsAsciiNarrowChar(c))
                 {
                     // 英文字母、数字和窄符号计为0.5个字符长度
                     effectiveLength += 0.5f;
                 }
-                else if (IsSpecialSeparator(c))
+        else if (IsSeparatorChar(c))
                 {
                     // 特殊分隔符计为0.7个字符长度
                     effectiveLength += 0.7f;
@@ -349,8 +350,8 @@ namespace Yugioh
             }
             return effectiveLength;
         }
-        // 添加攻守条
-        private static void AddAtkDefImage(Image image, Card card, string assetFigureDir)
+    // 绘制攻守条
+    private static void DrawAtkDefBar(Image image, Card card, string assetFigureDir)
         {
             try
             {
@@ -358,7 +359,7 @@ namespace Yugioh
                 bool isMonsterCard = card.CardType?.ToLower() == "monster";
                 if (isMonsterCard)
                 {
-                    string atkDefImageName = card.LinkValue.HasValue && card.LinkValue.Value > 0 ? "atk-link.png" : "atk-def.png";
+                    string atkDefImageName = card.LinkRating.HasValue && card.LinkRating.Value > 0 ? "atk-link.png" : "atk-def.png";
                     string atkDefImagePath = Path.Combine(assetFigureDir, IndicatorsDir, atkDefImageName);
                     if (File.Exists(atkDefImagePath))
                     {
@@ -369,7 +370,7 @@ namespace Yugioh
                             image.Mutate(ctx => ctx.DrawImage(atkDefImage, new Point(posX, posY), 1f));
                         }
                         // 攻击力和守备力/Link值
-                        AddAtkDefValues(image, card);
+                        DrawAtkDefValues(image, card);
                     }
                     else
                     {
@@ -382,16 +383,16 @@ namespace Yugioh
                 Console.WriteLine($"添加攻守条失败: {ex.Message}");
             }
         }
-        // 属性
-        private static void AddAttributeImage(Image image, Card card, string assetFigureDir)
+    // 属性
+    private static void DrawAttributeImage(Image image, Card card, string assetFigureDir)
         {
             try
             {
-                if (string.IsNullOrEmpty(card.Attribute))
+                if (string.IsNullOrEmpty(card.AttributeName))
                 {
                     return;
                 }
-                string attributeImageName = $"attribute-{card.Attribute.ToLower()}.png";
+                string attributeImageName = $"attribute-{card.AttributeName.ToLower()}.png";
                 string attributeImagePath = Path.Combine(assetFigureDir, AttributesDir, attributeImageName);
                 if (File.Exists(attributeImagePath))
                 {
@@ -412,8 +413,8 @@ namespace Yugioh
                 Console.WriteLine($"添加属性图像失败: {ex.Message}");
             }
         }
-        // 灵摆刻度
-        private static void AddPendulumScale(Image image, Card card)
+    // 灵摆刻度
+    private static void DrawPendulumScale(Image image, Card card)
         {
             try
             {
@@ -450,8 +451,8 @@ namespace Yugioh
                 Console.WriteLine($"添加灵摆刻度失败: {ex.Message}");
             }
         }
-        // 星级/阶级
-        private static void AddLevelOrRank(Image image, Card card, string assetFigureDir)
+    // 星级/阶级
+    private static void DrawLevelOrRank(Image image, Card card, string assetFigureDir)
         {
             try
             {
@@ -501,21 +502,21 @@ namespace Yugioh
                 Console.WriteLine($"添加星级/阶级图标失败: {ex.Message}");
             }
         }
-        // 拉丁字符
-        private static bool IsLatinCharacter(char c)
+    // ASCII / 窄字符检测
+    private static bool IsAsciiNarrowChar(char c)
         {
             if (c == '「' || c == '」' || c == '『' || c == '』' || c == '"' || c == '"' || c == '\'' || c == '\'')
                 return false;
             // ASCII
             return c <= 127;
         }
-        // 特殊分隔符
-        private static bool IsSpecialSeparator(char c)
+    // 分隔符（如中点、连字符等）
+    private static bool IsSeparatorChar(char c)
         {
             return c == '·' || c == '-' || c == '_' || c == '=' || c == '+' || c == '/';
         }
-        // 判断是否为标点符号
-        private static bool IsPunctuation(char c)
+    // 判断是否为标点符号
+    private static bool IsPunctuationChar(char c)
         {
             // 中文标点
             if (c == '，' || c == '。' || c == '、' || c == '：' || c == '；' ||
@@ -528,8 +529,8 @@ namespace Yugioh
             return false;
         }
 
-        // 攻击力和守备力/Link值
-        private static void AddAtkDefValues(Image image, Card card)
+    // 攻击力和守备力/Link值
+    private static void DrawAtkDefValues(Image image, Card card)
         {
             try
             {
@@ -544,7 +545,7 @@ namespace Yugioh
                 var atkDefFontFamily = fontCollection.Add(atkDefFontPath);
                 var atkDefFont = atkDefFontFamily.CreateFont(60f, FontStyle.Bold);
                 var color = Color.Black;
-                string atkText = card.Atk ?? "?";
+                string atkText = card.Attack ?? "?";
                 if (atkText == "-1")
                 {
                     atkText = "?";
@@ -556,10 +557,10 @@ namespace Yugioh
                 float atkX = 870f;
                 float atkY = 1857f;
                 image.Mutate(ctx => ctx.DrawText(atkText, atkDefFont, color, new PointF(atkX, atkY)));
-                bool isLinkMonster = card.LinkValue.HasValue && card.LinkValue.Value > 0;
-                if (isLinkMonster && card.LinkValue.HasValue)
+                bool isLinkMonster = card.LinkRating.HasValue && card.LinkRating.Value > 0;
+                if (isLinkMonster && card.LinkRating.HasValue)
                 {
-                    string linkText = card.LinkValue.Value.ToString();
+                    string linkText = card.LinkRating.Value.ToString();
                     float linkX = 1230f;
                     float linkY = 1890f;
                     if (File.Exists(linkFontPath))
@@ -574,9 +575,9 @@ namespace Yugioh
                         image.Mutate(ctx => ctx.DrawText(linkText, atkDefFont, color, new PointF(linkX, linkY)));
                     }
                 }
-                else if (!string.IsNullOrEmpty(card.Def))
+                else if (!string.IsNullOrEmpty(card.Defense))
                 {
-                    string defText = card.Def;
+                    string defText = card.Defense;
                     if (defText == "-1")
                     {
                         defText = "?";
@@ -595,8 +596,8 @@ namespace Yugioh
                 Console.WriteLine($"添加攻击力/守备力/链接值失败: {ex.Message}");
             }
         }
-        // ID
-        private static void AddCardID(Image image, Card card)
+    // ID
+    private static void DrawCardID(Image image, Card card)
         {
             try
             {
@@ -621,8 +622,8 @@ namespace Yugioh
                 Console.WriteLine($"添加ID失败: {ex.Message}");
             }
         }
-        // 卡图
-        private static void AddCardImage(Image image, Card card, string figureDir)
+    // 卡图
+    private static void DrawCardArtwork(Image image, Card card, string figureDir)
         {
             try
             {
@@ -649,8 +650,8 @@ namespace Yugioh
                 Console.WriteLine($"添加卡图失败: {ex.Message}, ID={card.Id}, 名称={card.Name}");
             }
         }
-        // 魔法卡/陷阱卡字样及icon
-        private static void AddCardTypeText(Image image, Card card)
+    // 魔法卡/陷阱卡字样及icon
+    private static void DrawCardTypeText(Image image, Card card)
         {
             try
             {
@@ -718,8 +719,8 @@ namespace Yugioh
                 Console.WriteLine($"添加卡片类型文字失败: {ex.Message}");
             }
         }
-        // Link箭头
-        private static void AddLinkArrows(Image image, Card card, string assetFigureDir)
+    // Link箭头
+    private static void DrawLinkArrows(Image image, Card card, string assetFigureDir)
         {
             try
             {
@@ -800,10 +801,10 @@ namespace Yugioh
                         totalEffectiveLines += 1;
                         continue;
                     }
-                    float effectiveLength = CalculateEffectiveLength(line);
+                        float effectiveLength = ComputeEffectiveCharLength(line);
                     if (effectiveLength > baseMaxEffectiveLength)
                     {
-                        List<string> subLines = SplitLongLine(line, baseMaxEffectiveLength);
+                        List<string> subLines = WrapLineByEffectiveLength(line, baseMaxEffectiveLength);
                         totalEffectiveLines += subLines.Count;
                     }
                     else
@@ -848,10 +849,10 @@ namespace Yugioh
                         currentLine++;
                         continue;
                     }
-                    float effectiveLength = CalculateEffectiveLength(line);
+                    float effectiveLength = ComputeEffectiveCharLength(line);
                     if (effectiveLength > currentMaxEffectiveLength)
                     {
-                        List<string> subLines = SplitLongLine(line, currentMaxEffectiveLength);
+                        List<string> subLines = WrapLineByEffectiveLength(line, currentMaxEffectiveLength);
                         foreach (string subLine in subLines)
                         {
                             image.Mutate(ctx => ctx.DrawText(subLine, descFont, color, new PointF(posX, posY)));
@@ -885,9 +886,9 @@ namespace Yugioh
                 var color = Color.Black;
                 string descriptionText = card.Description;
                 bool isMonsterCard = card.CardType?.ToLower() == "monster";
-                if (isMonsterCard && !string.IsNullOrEmpty(card.Typeline))
+                if (isMonsterCard && !string.IsNullOrEmpty(card.TypeLine))
                 {
-                    descriptionText = card.Typeline + "\n" + descriptionText;
+                    descriptionText = card.TypeLine + "\n" + descriptionText;
                 }
                 string[] originalLines = descriptionText.Split('\n');
                 float baseMaxEffectiveLength = 29f;
@@ -901,10 +902,10 @@ namespace Yugioh
                         totalLinesByCalc += 1;
                         continue;
                     }
-                    float effectiveLength = CalculateEffectiveLength(line);
+                    float effectiveLength = ComputeEffectiveCharLength(line);
                     if (effectiveLength > baseMaxEffectiveLength)
                     {
-                        List<string> subLines = SplitLongLine(line, baseMaxEffectiveLength);
+                        List<string> subLines = WrapLineByEffectiveLength(line, baseMaxEffectiveLength);
                         totalLinesByCalc += subLines.Count;
                         char_wraps += Math.Max(0, subLines.Count - 1);
                     }
@@ -989,10 +990,10 @@ namespace Yugioh
                         currentLine++;
                         continue;
                     }
-                    float effectiveLength = CalculateEffectiveLength(line);
+                    float effectiveLength = ComputeEffectiveCharLength(line);
                     if (effectiveLength > currentMaxEffectiveLength)
                     {
-                        List<string> subLines = SplitLongLine(line, currentMaxEffectiveLength);
+                        List<string> subLines = WrapLineByEffectiveLength(line, currentMaxEffectiveLength);
                         foreach (string subLine in subLines)
                         {
                             image.Mutate(ctx => ctx.DrawText(subLine, descFont, color, new PointF(posX, posY)));
@@ -1014,10 +1015,10 @@ namespace Yugioh
             }
         }
         // 分割长文本行
-        private static List<string> SplitLongLine(string line, float maxEffectiveLength)
+        private static List<string> WrapLineByEffectiveLength(string line, float maxEffectiveLength)
         {
             List<string> result = new List<string>();
-            if (CalculateEffectiveLength(line) <= maxEffectiveLength)
+            if (ComputeEffectiveCharLength(line) <= maxEffectiveLength)
             {
                 result.Add(line);
                 return result;
@@ -1027,11 +1028,11 @@ namespace Yugioh
             foreach (char c in line)
             {
                 float charLength = 0f;
-                if (IsLatinCharacter(c))
+                if (IsAsciiNarrowChar(c))
                 {
                     charLength = 0.5f;
                 }
-                else if (IsSpecialSeparator(c))
+                else if (IsSeparatorChar(c))
                 {
                     charLength = 0.7f;
                 }
