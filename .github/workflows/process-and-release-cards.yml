@@ -85,13 +85,11 @@ jobs:
                   mkdir -p ./checksums
                   echo "生成 forbidden_and_limited_list.tar.xz 的校验码文件..."
                   (cd ./tarballs && sha256sum forbidden_and_limited_list.tar.xz) > ./checksums/forbidden_and_limited_list.tar.xz.sha256
-                  (cd ./tarballs && md5sum forbidden_and_limited_list.tar.xz) > ./checksums/forbidden_and_limited_list.tar.xz.md5
                   echo "生成卡图压缩包的校验码文件..."
                   for tarball in ./tarballs/cards_*.tar.xz; do
                       filename=$(basename "$tarball")
                       echo "生成 $filename 的校验码文件..."
                       (cd ./tarballs && sha256sum $(basename "$tarball")) > "./checksums/$filename.sha256"
-                      (cd ./tarballs && md5sum $(basename "$tarball")) > "./checksums/$filename.md5"
                   done
                   echo "已生成的校验文件列表:"
                   ls -la ./checksums/
@@ -105,20 +103,16 @@ jobs:
                   body: |
                       自动生成的卡图、卡牌信息和禁限卡表,共包含${{ steps.release_body.outputs.total_jpg }}张JPG图片,每个压缩包包含最多10000张JPG图片,另外包含最新的禁限卡表
 
-                      所有压缩包文件均附带对应的SHA-256和MD5校验码文件(.sha256和.md5).可以使用以下命令验证文件完整性：
+                      所有压缩包文件均附带对应的SHA-256校验码文件(.sha256).可以使用以下命令验证文件完整性：
                       ```
                       # 验证SHA-256校验码
                       sha256sum -c 文件名.sha256
-
-                      # 验证MD5校验码
-                      md5sum -c 文件名.md5
                       ```
                   files: |
                       ./tarballs/cards_*.tar.xz
                       ./tarballs/forbidden_and_limited_list.tar.xz
                       ./tmp/cards.json
                       ./checksums/*.sha256
-                      ./checksums/*.md5
                   draft: false
                   prerelease: false
               env:
