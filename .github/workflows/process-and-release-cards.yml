@@ -2,6 +2,8 @@ name: YuGiOh Cards Data Processing and Release
 on:
     schedule:
         - cron: "0 16 * * *"
+    push:
+        paths: ".github/workflows/**"
 jobs:
     process-and-release:
         runs-on: ubuntu-latest
