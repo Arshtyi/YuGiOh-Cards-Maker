@@ -19,18 +19,17 @@ namespace Yugioh
         private static readonly RectangleF CardDescriptionArea = new RectangleF(110f, 1533f, 1283f - 110f, 1897f - 1533f);
         private static readonly string FontPath = Path.Combine("asset", "font", "sc", "XinHuaKaiTi.ttf");
         // 资源目录
-    // 存放卡框(frame)图片的目录
-    private static readonly string FramesDir = "cards";
+        private static readonly string FramesDir = "cards";
         private static readonly string MasksDir = "masks";
         private static readonly string AttributesDir = "attributes";
         private static readonly string IndicatorsDir = "indicators";
         private static readonly string IconsDir = "icons";
         private static readonly string ArrowsDir = "arrows";
-    private static Font? titleBlackFont;
-    private static Font? titleWhiteFont;
-    private static Color titleBlackColor;
-    private static Color titleWhiteColor;
-    private static Color titleShadowColor;
+        private static Font? titleBlackFont;
+        private static Font? titleWhiteFont;
+        private static Color titleBlackColor;
+        private static Color titleWhiteColor;
+        private static Color titleShadowColor;
         private static FontFamily fontFamily;
         private static FontCollection LoadFonts()
         {
@@ -915,7 +914,7 @@ namespace Yugioh
                     }
                 }
                 int totalLines = originalLines.Length + char_wraps;
-                Console.WriteLine($"[Debug] ID={card.Id}, Name={card.Name}, newline_wraps={newline_wraps}, char_wraps={char_wraps}, totalLines={totalLines}");
+                // Console.WriteLine($"[Debug] ID={card.Id}, Name={card.Name}, newline_wraps={newline_wraps}, char_wraps={char_wraps}, totalLines={totalLines}");
                 var frameType = card.FrameType?.ToLower() ?? "";
                 bool isPendulum = frameType.Contains("pendulum");
                 bool isSpellOrTrap = card.CardType?.ToLower() == "spell" || card.CardType?.ToLower() == "trap";
