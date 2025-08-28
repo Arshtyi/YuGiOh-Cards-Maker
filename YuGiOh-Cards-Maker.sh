@@ -103,6 +103,22 @@ create_directories() {
     print_green "=== 创建必要目录 ==="
     mkdir -p tmp/figure
 }
+cleanup_directories() {
+    print_green "=== 清理临时目录 ==="
+    if [ -d "bin" ]; then
+        print_yellow "删除 bin 目录..."
+        rm -rf bin/
+    fi
+    if [ -d "tmp/figure" ]; then
+        print_yellow "删除 tmp/figure 目录..."
+        rm -rf tmp/figure/
+    fi
+    if [ -d "obj" ]; then
+        print_yellow "删除 obj 目录..."
+        rm -rf obj/
+    fi
+    print_green "清理完成"
+}
 run_project() {
     print_green "=== 运行 YuGiOh Cards Maker ==="
     print_yellow "正在运行卡片数据处理脚本..."
@@ -149,6 +165,7 @@ main() {
     setup_system_limits
     create_directories
     run_project "$@"
+    cleanup_directories
     print_green "===== YuGiOh Cards Maker 执行完成 ====="
 }
 main "$@"
