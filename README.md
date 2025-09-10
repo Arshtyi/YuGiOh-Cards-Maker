@@ -91,7 +91,9 @@
 |        limit        | `List<Dictionary<string, object?>>` |      `["ocg":null/"forbidden"/"limited"/"semi-limited","tcg":null/"forbidden"/"limited"/"semi-limited", "md":null/"forbidden"/"limited"/"semi-limited"]`      | 禁限情况,包括 OCG、TCG、MD                         | 所有                             |
 |      cardImage      |              `string`               |                                                                               -                                                                               | 卡片中心图的文件名                                 | 默认为 id 的文本,一些 token 不同 |
 
-## 安装依赖
+## 本地
+
+### 安装依赖
 
 ```bash
 # 安装Python依赖
@@ -102,25 +104,55 @@ sudo dnf update && sudo dnf install dotnet-sdk-8.0
 dotnet restore
 ```
 
-## 获取和更新数据
+### 获取和更新数据
 
 ```bash
 ./script/process_yugioh_cards.sh
 ```
 
-## 编译和运行
+### 编译和运行
 
 ```bash
 dotnet build && dotnet run
 ```
 
-或者直接运行
+### 一键运行
+
+直接运行
 
 ```bash
 ./YuGiOh-Cards-Maker.sh
 ```
 
-以完成所有任务
+以完成所有流程
+
+## Docker
+
+### 构建
+
+```bash
+docker build -t yugioh-cards-maker:latest .
+```
+
+### 运行
+
+```bash
+docker run -it yugioh-cards-maker:latest
+```
+
+### 复制
+
+```bash
+docker ps -a
+docker cp <CONTAINER_ID>:/app/figure ./figure
+```
+
+> ```bash
+> # 拉取最新镜像
+> docker pull arshtyier/yugioh-cards-maker:latest
+> # 运行
+> docker run -it arshtyier/yugioh-cards-maker:latest
+> ```
 
 ## 可选参数
 
@@ -132,7 +164,7 @@ dotnet build && dotnet run
 
 ### Shell 继承参数
 
-这些参数能够由 shell 脚本 `YuGiOh-Cards-Maker.sh`继承给 C#程序
+这些参数能够由 shell 脚本 `YuGiOh-Cards-Maker.sh`继承给 C#程序,Docker 则追加到 run 命令即可.
 
 -   `--debug`：
 

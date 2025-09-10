@@ -1,0 +1,16 @@
+/.git
+/bin
+/obj
+/tmp
+/res/limit
+/.github
+/cfg.example
+/figure
+/log
+.dockerignore
+.editorconfig
+.gitignore
+.vscode
+Dockerfile
+README.md
+LICENSE
