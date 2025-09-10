@@ -82,23 +82,6 @@ install_dependencies() {
         read -n1
     fi
 }
-setup_system_limits() {
-    if [ -n "$GITHUB_ACTIONS" ]; then
-        print_green "=== 在GitHub Actions环境中运行,跳过设置系统限制 ==="
-        return
-    fi
-    print_green "=== 设置系统限制 ==="
-    current_fd_limit=$(ulimit -n)
-    if [ "$current_fd_limit" -lt 4096 ]; then
-        print_yellow "增加文件描述符限制到4096（原限制：$current_fd_limit）"
-        ulimit -n 4096 || print_yellow "警告: 无法增加文件描述符限制,可能需要root权限"
-    fi
-    current_proc_limit=$(ulimit -u)
-    if [ "$current_proc_limit" -lt 4096 ]; then
-        print_yellow "增加进程数限制到4096（原限制：$current_proc_limit）"
-        ulimit -u 4096 || print_yellow "警告: 无法增加进程数限制,可能需要root权限"
-    fi
-}
 create_directories() {
     print_green "=== 创建必要目录 ==="
     mkdir -p tmp/figure
@@ -162,7 +145,6 @@ main() {
         exit 1
     fi
     install_dependencies
-    setup_system_limits
     create_directories
     run_project "$@"
     cleanup_directories
