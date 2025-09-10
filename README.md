@@ -66,6 +66,8 @@
 -   `update_banlist.py`:更新 `res/limit/`下禁限卡表
 -   `YuGiOh-Cards-Maker.csproj`:C#环境依赖
 -   `YuGiOh-Cards-Maker.sh`:一键脚本
+-   `Dockerfile`:Docker 构建文件
+-   `entrypoint.sh`:命令行参数传递脚本
 
 ## JSON 结构说明
 
