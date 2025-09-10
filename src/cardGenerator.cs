@@ -19,6 +19,7 @@ namespace Yugioh
         private static readonly RectangleF PendulumDescriptionArea = new RectangleF(220f, 1300f, 1180f - 220f, 1500f - 1300f);
         private static readonly RectangleF CardDescriptionArea = new RectangleF(110f, 1533f, 1283f - 110f, 1897f - 1533f);
         private static readonly string FontPath = Path.Combine("asset", "font", "sc", "XinHuaKaiTi.ttf");
+        private const float PendulumIdYOffset = 1f; // TODO: 如需调整灵摆卡 ID 的垂直位置，修改这里的数值（正值=向下）
         // 资源目录
         private static readonly string FramesDir = "cards";
         private static readonly string MasksDir = "masks";
@@ -632,6 +633,10 @@ namespace Yugioh
                 string idText = card.Id.ToString().PadLeft(8, '0');
                 float idX = 64f;
                 float idY = 1934f;
+                if (frameType.Contains("pendulum"))
+                {
+                    idY += PendulumIdYOffset;
+                }
                 image.Mutate(ctx => ctx.DrawText(idText, font, color, new PointF(idX, idY)));
             }
             catch (Exception ex)
