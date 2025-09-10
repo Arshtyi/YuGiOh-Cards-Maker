@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.Fonts;
 using System.Numerics;
+using SixLabors.ImageSharp.PixelFormats;
 namespace Yugioh
 {
     public static class CardGenerator
@@ -52,7 +53,7 @@ namespace Yugioh
                 throw;
             }
         }
-    public static void GenerateCardImages(string cardsJsonPath, string assetFigureDir, string outputFigureDir, bool debug = false, bool usePng = false)
+        public static void GenerateCardImages(string cardsJsonPath, string assetFigureDir, string outputFigureDir, bool debug = false, bool usePng = false)
         {
             Console.WriteLine("开始卡片图像生成...");
             if (!File.Exists(cardsJsonPath))
@@ -64,8 +65,7 @@ namespace Yugioh
             if (Directory.Exists(outputFigureDir))
             {
                 Directory.CreateDirectory(outputFigureDir);
-                foreach (var file in Directory.GetFiles(outputFigureDir, "*.jpg")
-                    .Concat(Directory.GetFiles(outputFigureDir, "*.png")))
+                foreach (var file in Directory.GetFiles(outputFigureDir, "*.jpg").Concat(Directory.GetFiles(outputFigureDir, "*.png")))
                 {
                     File.Delete(file);
                 }
@@ -92,10 +92,7 @@ namespace Yugioh
                 string debugFilePath = Path.Combine("dev", "debug.txt");
                 if (File.Exists(debugFilePath))
                 {
-                    var debugIds = File.ReadAllLines(debugFilePath)
-                        .Where(line => !string.IsNullOrWhiteSpace(line))
-                        .Select(line => line.Trim())
-                        .ToList();
+                    var debugIds = File.ReadAllLines(debugFilePath).Where(line => !string.IsNullOrWhiteSpace(line)).Select(line => line.Trim()).ToList();
                     cardsToProcess = new List<Card>();
                     foreach (var idStr in debugIds)
                     {
@@ -266,77 +263,57 @@ namespace Yugioh
         {
             try
             {
-                float fontSize = 95f;
-                float posYOffset = 30f;
-                bool hasSpecialSeparator = cardName.Contains("·") || cardName.Contains("-") || cardName.Contains("・");
-                float effectiveLength = ComputeEffectiveCharLength(cardName);
-                if (effectiveLength <= 10)
-                {
-                    fontSize = 105f;
-                    posYOffset = 25f;
-                }
-                else if (effectiveLength <= 12)
-                {
-                    fontSize = 88f;
-                    posYOffset = 30f;
-                }
-                else if (effectiveLength <= 14)
-                {
-                    fontSize = 75f;
-                    posYOffset = 35f;
-                }
-                else if (effectiveLength <= 16)
-                {
-                    fontSize = 70f;
-                    posYOffset = 40f;
-                }
-                else if (effectiveLength <= 18)
-                {
-                    fontSize = 59f;
-                    posYOffset = 43f;
-                }
-                else if (effectiveLength <= 20)
-                {
-                    fontSize = 55f;
-                    posYOffset = 45f;
-                }
-                else if (effectiveLength == 21)
-                {
-                    fontSize = 50f;
-                    posYOffset = 45f;
-                }
-                else if (effectiveLength > 21)
-                {
-                    fontSize = 46f;
-                    posYOffset = 48f;
-                }
-                Font titleFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
+                float fontSize = 95f; // 起始字号
                 Color textColor = isSpecialCard ? titleWhiteColor : titleBlackColor;
-                float posX = CardNameArea.X + 20f;
+                float areaWidth = CardNameArea.Width;
+                float posX = CardNameArea.X + 20f; // 左边距
+                int iterations = 0;
+                float measuredWidth = 0f;
+                Font titleFont;
+                // 缩放循环：逐步减一直到不超出区域
+                while (true)
+                {
+                    titleFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
+                    measuredWidth = MeasureTextPixelWidth(cardName, titleFont, textColor);
+                    if (measuredWidth <= areaWidth || fontSize <= 30f) break;
+                    fontSize -= 1f;
+                    iterations++;
+                    if (iterations > 200)
+                    {
+                        Console.WriteLine($"[CardNameFit][Warn] 超过迭代上限，强制使用当前字体。名称=\"{cardName}\"");
+                        break;
+                    }
+                }
+                float posYOffset = 30f + (95f - fontSize) * 0.4f; // 字号变小向下移动
+                if (posYOffset < 15f) posYOffset = 15f;
+                if (posYOffset > 60f) posYOffset = 60f;
                 float posY = CardNameArea.Y + posYOffset;
+                titleFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
                 image.Mutate(ctx =>
                 {
                     ctx.DrawText(cardName, titleFont, titleShadowColor, new PointF(posX + 3f, posY + 3f));
                     ctx.DrawText(cardName, titleFont, textColor, new PointF(posX, posY));
                 });
+                // float ratio = (areaWidth > 0f) ? (measuredWidth / areaWidth * 100f) : 0f;
+                // Console.WriteLine($"[CardNameFit] 名称=\"{cardName}\" 像素长度={measuredWidth:F2}px 区域长度={areaWidth:F2}px 字体大小={fontSize:F1}px Y偏移={posYOffset:F1}px 占用比例={ratio:F1}% 迭代次数={iterations}");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"绘制卡名失败: {ex.Message}");
             }
         }
-    // 计算卡名有效长度（按字符类型赋予不同权重）
-    private static float ComputeEffectiveCharLength(string cardName)
+        // 计算卡名有效长度（按字符类型赋予不同权重）
+        private static float ComputeEffectiveCharLength(string cardName)
         {
             float effectiveLength = 0;
             foreach (char c in cardName)
             {
-        if (IsAsciiNarrowChar(c))
+                if (IsAsciiNarrowChar(c))
                 {
                     // 英文字母、数字和窄符号计为0.5个字符长度
                     effectiveLength += 0.5f;
                 }
-        else if (IsSeparatorChar(c))
+                else if (IsSeparatorChar(c))
                 {
                     // 特殊分隔符计为0.7个字符长度
                     effectiveLength += 0.7f;
@@ -349,8 +326,49 @@ namespace Yugioh
             }
             return effectiveLength;
         }
-    // 绘制攻守条
-    private static void DrawAtkDefBar(Image image, Card card, string assetFigureDir)
+        // 离屏渲染测量文本真实像素宽度（忽略完全透明像素）
+        private static float MeasureTextPixelWidth(string text, Font font, Color color)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(text)) return 0f;
+                // 预估画布：给每字符 font.Size*1.6 的宽度余量，最少 200
+                int estimatedWidth = Math.Max(200, (int)Math.Ceiling(font.Size * text.Length * 1.6f));
+                int estimatedHeight = (int)Math.Ceiling(font.Size * 2.0f);
+                if (estimatedWidth > 5000) estimatedWidth = 5000; // 防止异常放大
+                using var temp = new Image<Rgba32>(estimatedWidth, estimatedHeight, Color.Transparent);
+                temp.Mutate(ctx => ctx.DrawText(text, font, color, new PointF(0, 0)));
+                int left = estimatedWidth;
+                int right = -1;
+                temp.ProcessPixelRows(accessor =>
+                {
+                    for (int y = 0; y < accessor.Height; y++)
+                    {
+                        var span = accessor.GetRowSpan(y);
+                        for (int x = 0; x < span.Length; x++)
+                        {
+                            if (span[x].A > 10) // 有效像素
+                            {
+                                if (x < left) left = x;
+                                if (x > right) right = x;
+                            }
+                        }
+                    }
+                });
+                if (right >= left && right >= 0)
+                {
+                    return (right - left + 1);
+                }
+                return 0f;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[CardName] 离屏测量异常: {ex.Message}");
+                return 0f;
+            }
+        }
+        // 绘制攻守条
+        private static void DrawAtkDefBar(Image image, Card card, string assetFigureDir)
         {
             try
             {
@@ -382,8 +400,8 @@ namespace Yugioh
                 Console.WriteLine($"添加攻守条失败: {ex.Message}");
             }
         }
-    // 属性
-    private static void DrawAttributeImage(Image image, Card card, string assetFigureDir)
+        // 属性
+        private static void DrawAttributeImage(Image image, Card card, string assetFigureDir)
         {
             try
             {
@@ -412,8 +430,8 @@ namespace Yugioh
                 Console.WriteLine($"添加属性图像失败: {ex.Message}");
             }
         }
-    // 灵摆刻度
-    private static void DrawPendulumScale(Image image, Card card)
+        // 灵摆刻度
+        private static void DrawPendulumScale(Image image, Card card)
         {
             try
             {
@@ -450,8 +468,8 @@ namespace Yugioh
                 Console.WriteLine($"添加灵摆刻度失败: {ex.Message}");
             }
         }
-    // 星级/阶级
-    private static void DrawLevelOrRank(Image image, Card card, string assetFigureDir)
+        // 星级/阶级
+        private static void DrawLevelOrRank(Image image, Card card, string assetFigureDir)
         {
             try
             {
@@ -501,21 +519,21 @@ namespace Yugioh
                 Console.WriteLine($"添加星级/阶级图标失败: {ex.Message}");
             }
         }
-    // ASCII / 窄字符检测
-    private static bool IsAsciiNarrowChar(char c)
+        // ASCII / 窄字符检测
+        private static bool IsAsciiNarrowChar(char c)
         {
             if (c == '「' || c == '」' || c == '『' || c == '』' || c == '"' || c == '"' || c == '\'' || c == '\'')
                 return false;
             // ASCII
             return c <= 127;
         }
-    // 分隔符（如中点、连字符等）
-    private static bool IsSeparatorChar(char c)
+        // 分隔符（如中点、连字符等）
+        private static bool IsSeparatorChar(char c)
         {
             return c == '·' || c == '-' || c == '_' || c == '=' || c == '+' || c == '/';
         }
-    // 判断是否为标点符号
-    private static bool IsPunctuationChar(char c)
+        // 判断是否为标点符号
+        private static bool IsPunctuationChar(char c)
         {
             // 中文标点
             if (c == '，' || c == '。' || c == '、' || c == '：' || c == '；' ||
@@ -528,8 +546,8 @@ namespace Yugioh
             return false;
         }
 
-    // 攻击力和守备力/Link值
-    private static void DrawAtkDefValues(Image image, Card card)
+        // 攻击力和守备力/Link值
+        private static void DrawAtkDefValues(Image image, Card card)
         {
             try
             {
@@ -595,8 +613,8 @@ namespace Yugioh
                 Console.WriteLine($"添加攻击力/守备力/链接值失败: {ex.Message}");
             }
         }
-    // ID
-    private static void DrawCardID(Image image, Card card)
+        // ID
+        private static void DrawCardID(Image image, Card card)
         {
             try
             {
@@ -621,8 +639,8 @@ namespace Yugioh
                 Console.WriteLine($"添加ID失败: {ex.Message}");
             }
         }
-    // 卡图
-    private static void DrawCardArtwork(Image image, Card card, string figureDir)
+        // 卡图
+        private static void DrawCardArtwork(Image image, Card card, string figureDir)
         {
             try
             {
@@ -649,8 +667,8 @@ namespace Yugioh
                 Console.WriteLine($"添加卡图失败: {ex.Message}, ID={card.Id}, 名称={card.Name}");
             }
         }
-    // 魔法卡/陷阱卡字样及icon
-    private static void DrawCardTypeText(Image image, Card card)
+        // 魔法卡/陷阱卡字样及icon
+        private static void DrawCardTypeText(Image image, Card card)
         {
             try
             {
@@ -718,8 +736,8 @@ namespace Yugioh
                 Console.WriteLine($"添加卡片类型文字失败: {ex.Message}");
             }
         }
-    // Link箭头
-    private static void DrawLinkArrows(Image image, Card card, string assetFigureDir)
+        // Link箭头
+        private static void DrawLinkArrows(Image image, Card card, string assetFigureDir)
         {
             try
             {
@@ -800,7 +818,7 @@ namespace Yugioh
                         totalEffectiveLines += 1;
                         continue;
                     }
-                        float effectiveLength = ComputeEffectiveCharLength(line);
+                    float effectiveLength = ComputeEffectiveCharLength(line);
                     if (effectiveLength > baseMaxEffectiveLength)
                     {
                         List<string> subLines = WrapLineByEffectiveLength(line, baseMaxEffectiveLength);
@@ -922,12 +940,17 @@ namespace Yugioh
                 float posY = CardDescriptionArea.Y;
                 float maxWidth = CardDescriptionArea.Width;
                 float maxHeight;
-                if (isSpellOrTrap) {
+                if (isSpellOrTrap)
+                {
                     maxHeight = 1897f - CardDescriptionArea.Y;
-                } else if (isPendulum) {
+                }
+                else if (isPendulum)
+                {
                     posY = 1540f;
                     maxHeight = 1845f - 1540f;
-                } else {
+                }
+                else
+                {
                     maxHeight = 1845f - CardDescriptionArea.Y;
                 }
                 float lineHeight;
