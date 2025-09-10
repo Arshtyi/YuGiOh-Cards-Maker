@@ -5,7 +5,7 @@
 -   本项目是一个**自动制作简中游戏王卡片图片及数据信息的无 GUI 工具**,若为 DIY 向制图请往别处
 -   本项目很大程度是为了[Koishi-Plugin-YuGiOh-Cards](https://github.com/Arshtyi/koishi-plugin-yugioh-cards)及其他依赖项目
 -   本项目利用 Github Actions [Release](https://github.com/Arshtyi/YuGiOh-Cards-Maker/releases/tag/latest) 卡牌(图片压缩包以及所有数据)
--   本项目在 Linux (Ubuntu24.04->Fedora41)上开发(`Shell+Python+C#`)
+-   本项目在 Linux (Ubuntu24.04->Fedora41/42)上开发(`Shell+Python+C#`)
 
 ## 项目说明
 

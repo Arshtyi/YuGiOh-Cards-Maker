@@ -103,12 +103,12 @@ jobs:
                   tag_name: latest
                   name: YuGiOh Cards & Banlist Data
                   body: |
-                      自动生成的卡图、卡牌信息和禁限卡表,共包含${{ steps.release_body.outputs.total_jpg }}张JPG图片,每个压缩包包含最多10000张JPG图片,另外包含最新的禁限卡表
+                      自动生成的卡图、卡牌信息和禁限卡表,共包含${{ steps.release_body.outputs.total_jpg }}张JPG图片,每个压缩包包含最多10000张JPG图片,另外包含最新的禁限卡表.
 
                       所有压缩包文件均附带对应的SHA-256校验码文件(.sha256).可以使用以下命令验证文件完整性：
                       ```
-                      # 验证SHA-256校验码
-                      sha256sum -c 文件名.sha256
+                      # 验证SHA-256
+                      sha256sum -c {filename}.sha256
                       ```
                   files: |
                       ./tarballs/cards_*.tar.xz

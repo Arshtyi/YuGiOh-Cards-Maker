@@ -295,7 +295,7 @@ namespace Yugioh
                     ctx.DrawText(cardName, titleFont, textColor, new PointF(posX, posY));
                 });
                 // float ratio = (areaWidth > 0f) ? (measuredWidth / areaWidth * 100f) : 0f;
-                // Console.WriteLine($"[CardNameFit] 名称=\"{cardName}\" 像素长度={measuredWidth:F2}px 区域长度={areaWidth:F2}px 字体大小={fontSize:F1}px Y偏移={posYOffset:F1}px 占用比例={ratio:F1}% 迭代次数={iterations}");
+                // Console.WriteLine($"[CardNameFit] 名称=\"{cardName}\" 像素长度={measuredWidth:F2}px 区域长度={areaWidth:F2}px 字体大小={fontSize:F1}px Y偏移={posYOffset:F1}px 占用比例={ratio:F1}% 迭代={iterations}");
             }
             catch (Exception ex)
             {
@@ -805,85 +805,62 @@ namespace Yugioh
                 {
                     return;
                 }
-                float fontSize = 40f;
+                float fontSize = 40f; // 起始字号
                 var color = Color.Black;
-                string pendulumText = card.PendulumDescription;
-                string[] originalLines = pendulumText.Split('\n');
-                float baseMaxEffectiveLength = 24f;
-                int totalEffectiveLines = 0;
-                foreach (string line in originalLines)
-                {
-                    if (string.IsNullOrEmpty(line))
-                    {
-                        totalEffectiveLines += 1;
-                        continue;
-                    }
-                    float effectiveLength = ComputeEffectiveCharLength(line);
-                    if (effectiveLength > baseMaxEffectiveLength)
-                    {
-                        List<string> subLines = WrapLineByEffectiveLength(line, baseMaxEffectiveLength);
-                        totalEffectiveLines += subLines.Count;
-                    }
-                    else
-                    {
-                        totalEffectiveLines += 1;
-                    }
-                }
+                string fullText = card.PendulumDescription;
+                string[] logicalLines = fullText.Split('\n');
+                float baseMaxEffectiveLength = 24f; // 对应字号40
                 float posX = PendulumDescriptionArea.X;
-                float posY = PendulumDescriptionArea.Y;
-                float maxWidth = PendulumDescriptionArea.Width;
-                float maxHeight = PendulumDescriptionArea.Height;
-                float lineHeight;
-                float currentMaxEffectiveLength = baseMaxEffectiveLength;
-                if (totalEffectiveLines > 5)
+                float areaTopY = PendulumDescriptionArea.Y;
+                float maxHeight = PendulumDescriptionArea.Height; // 高度限制
+                int iterations = 0;
+                int maxIterations = 60;
+                List<string> finalLines = new();
+                float finalLineHeight = 0f;
+                float finalFontSize = fontSize;
+                int finalTotalLines = 0;
+                while (true)
                 {
-                    fontSize = 33f;
-                    lineHeight = fontSize * 1.1f;
-                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 33f);
-                }
-                else if (totalEffectiveLines > 4)
-                {
-                    fontSize = 35f;
-                    lineHeight = fontSize * 1.15f;
-                    currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / 35f);
-                }
-                else
-                {
-                    lineHeight = fontSize * 1.2f;
-                }
-                Font descFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
-                var textOptions = new TextOptions(descFont)
-                {
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
-                };
-                int currentLine = 0;
-                foreach (string line in originalLines)
-                {
-                    if (string.IsNullOrEmpty(line))
+                    if (fontSize < 20f) fontSize = 20f;
+                    float lineHeight;
+                    if (fontSize <= 30f) lineHeight = fontSize * 1.0f; else if (fontSize <= 35f) lineHeight = fontSize * 1.1f; else lineHeight = fontSize * 1.2f;
+                    float currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / fontSize);
+                    finalLines.Clear();
+                    foreach (var l in logicalLines)
                     {
-                        posY += lineHeight / 2;
-                        currentLine++;
-                        continue;
-                    }
-                    float effectiveLength = ComputeEffectiveCharLength(line);
-                    if (effectiveLength > currentMaxEffectiveLength)
-                    {
-                        List<string> subLines = WrapLineByEffectiveLength(line, currentMaxEffectiveLength);
-                        foreach (string subLine in subLines)
+                        if (string.IsNullOrEmpty(l)) { finalLines.Add(""); continue; }
+                        float eff = ComputeEffectiveCharLength(l);
+                        if (eff > currentMaxEffectiveLength)
                         {
-                            image.Mutate(ctx => ctx.DrawText(subLine, descFont, color, new PointF(posX, posY)));
-                            posY += lineHeight;
-                            currentLine++;
+                            var subs = WrapLineByEffectiveLength(l, currentMaxEffectiveLength);
+                            finalLines.AddRange(subs);
                         }
+                        else finalLines.Add(l);
                     }
-                    else
+                    float totalHeight = 0f;
+                    foreach (var ln in finalLines)
+                        totalHeight += (ln == "") ? (lineHeight / 2f) : lineHeight;
+                    if (totalHeight <= maxHeight || fontSize <= 20f || iterations >= maxIterations)
                     {
-                        image.Mutate(ctx => ctx.DrawText(line, descFont, color, new PointF(posX, posY)));
-                        posY += lineHeight;
-                        currentLine++;
+                        finalLineHeight = lineHeight;
+                        finalFontSize = fontSize;
+                        finalTotalLines = finalLines.Count;
+                        break;
                     }
+                    fontSize -= 1f;
+                    iterations++;
                 }
+                var descFont = fontFamily.CreateFont(finalFontSize, FontStyle.Regular);
+                float drawY = areaTopY;
+                foreach (var line in finalLines)
+                {
+                    if (line == "") { drawY += finalLineHeight / 2f; continue; }
+                    image.Mutate(ctx => ctx.DrawText(line, descFont, color, new PointF(posX, drawY)));
+                    drawY += finalLineHeight;
+                }
+                // float usedHeight = drawY - areaTopY;
+                // float ratio = (maxHeight > 0) ? usedHeight / maxHeight * 100f : 0f;
+                // Console.WriteLine($"[PendulumDescFit] ID={card.Id} 名称=\"{card.Name}\" 字号={finalFontSize:F1}px 行数={finalTotalLines} 高度={usedHeight:F1}px/区域={maxHeight:F1}px 占用比例={ratio:F1}% 迭代={iterations}");
             }
             catch (Exception ex)
             {
@@ -899,7 +876,8 @@ namespace Yugioh
                 {
                     return;
                 }
-                float fontSize = 40f;
+                // 初始准备
+                float fontSize = 40f; // 起始字号
                 var color = Color.Black;
                 string descriptionText = card.Description;
                 bool isMonsterCard = card.CardType?.ToLower() == "monster";
@@ -907,129 +885,97 @@ namespace Yugioh
                 {
                     descriptionText = card.TypeLine + "\n" + descriptionText;
                 }
-                string[] originalLines = descriptionText.Split('\n');
-                float baseMaxEffectiveLength = 29f;
-                int newline_wraps = Math.Max(0, originalLines.Length - 1);
-                int char_wraps = 0;
-                int totalLinesByCalc = 0;
-                foreach (string line in originalLines)
-                {
-                    if (string.IsNullOrEmpty(line))
-                    {
-                        totalLinesByCalc += 1;
-                        continue;
-                    }
-                    float effectiveLength = ComputeEffectiveCharLength(line);
-                    if (effectiveLength > baseMaxEffectiveLength)
-                    {
-                        List<string> subLines = WrapLineByEffectiveLength(line, baseMaxEffectiveLength);
-                        totalLinesByCalc += subLines.Count;
-                        char_wraps += Math.Max(0, subLines.Count - 1);
-                    }
-                    else
-                    {
-                        totalLinesByCalc += 1;
-                    }
-                }
-                int totalLines = originalLines.Length + char_wraps;
-                // Console.WriteLine($"[Debug] ID={card.Id}, Name={card.Name}, newline_wraps={newline_wraps}, char_wraps={char_wraps}, totalLines={totalLines}");
                 var frameType = card.FrameType?.ToLower() ?? "";
                 bool isPendulum = frameType.Contains("pendulum");
                 bool isSpellOrTrap = card.CardType?.ToLower() == "spell" || card.CardType?.ToLower() == "trap";
+                float baseAreaY = CardDescriptionArea.Y;
                 float posX = CardDescriptionArea.X;
-                float posY = CardDescriptionArea.Y;
                 float maxWidth = CardDescriptionArea.Width;
+                float areaTopY = baseAreaY;
                 float maxHeight;
                 if (isSpellOrTrap)
                 {
-                    maxHeight = 1897f - CardDescriptionArea.Y;
+                    maxHeight = 1897f - baseAreaY;
                 }
                 else if (isPendulum)
                 {
-                    posY = 1540f;
+                    areaTopY = 1540f;
                     maxHeight = 1845f - 1540f;
                 }
                 else
                 {
-                    maxHeight = 1845f - CardDescriptionArea.Y;
+                    maxHeight = 1845f - baseAreaY;
                 }
-                float lineHeight;
-                float currentMaxEffectiveLength = baseMaxEffectiveLength;
-                if (newline_wraps >= 7)
+                // 参数
+                float baseMaxEffectiveLength = 29f; // 对应字号40
+                int iterations = 0;
+                int maxIterations = 80;
+                int finalTotalLines = 0;
+                List<string> finalLines = new();
+                float finalLineHeight = 0f;
+                float finalFontSize = fontSize;
+                // 迭代：如果排版高度超出区域则 fontSize-- 重排
+                while (true)
                 {
-                    if (char_wraps >= 1) fontSize = 28f;
-                    else fontSize = 32f;
-                }
-                else if (newline_wraps >= 5)
-                {
-                    if (char_wraps >= 3) fontSize = 30f;
-                    else fontSize = 33f;
-                }
-                else if (newline_wraps >= 3)
-                {
-                    if (char_wraps >= 4) fontSize = 31f;
-                    else fontSize = 33f;
-                }
-                else if (newline_wraps == 2)
-                {
-                    if (char_wraps >= 4) fontSize = 34f;
-                    else fontSize = 38f;
-                }
-                else if (newline_wraps == 1)
-                {
-                    if (char_wraps >= 4) fontSize = 36f;
-                    else fontSize = 40f;
-                }
-                else
-                {
-                    fontSize = 40f;
-                }
-                if (fontSize <= 30f)
-                {
-                    lineHeight = fontSize * 1.0f;
-                }
-                else if (fontSize <= 35f)
-                {
-                    lineHeight = fontSize * 1.1f;
-                }
-                else
-                {
-                    lineHeight = fontSize * 1.2f;
-                }
-                currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / fontSize);
-                Font descFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
-                var textOptions = new TextOptions(descFont)
-                {
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
-                };
-                int currentLine = 0;
-                foreach (string line in originalLines)
-                {
-                    if (string.IsNullOrEmpty(line))
+                    if (fontSize < 20f) { fontSize = 20f; }
+                    float lineHeight;
+                    if (fontSize <= 30f) lineHeight = fontSize * 1.0f;
+                    else if (fontSize <= 35f) lineHeight = fontSize * 1.1f;
+                    else lineHeight = fontSize * 1.2f;
+                    float currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / fontSize);
+                    // 重新分行
+                    finalLines.Clear();
+                    string[] logicalLines = descriptionText.Split('\n');
+                    foreach (var l in logicalLines)
                     {
-                        posY += lineHeight / 2;
-                        currentLine++;
-                        continue;
-                    }
-                    float effectiveLength = ComputeEffectiveCharLength(line);
-                    if (effectiveLength > currentMaxEffectiveLength)
-                    {
-                        List<string> subLines = WrapLineByEffectiveLength(line, currentMaxEffectiveLength);
-                        foreach (string subLine in subLines)
+                        if (string.IsNullOrEmpty(l))
                         {
-                            image.Mutate(ctx => ctx.DrawText(subLine, descFont, color, new PointF(posX, posY)));
-                            posY += lineHeight;
-                            currentLine++;
+                            finalLines.Add("");
+                            continue;
+                        }
+                        float eff = ComputeEffectiveCharLength(l);
+                        if (eff > currentMaxEffectiveLength)
+                        {
+                            var subs = WrapLineByEffectiveLength(l, currentMaxEffectiveLength);
+                            finalLines.AddRange(subs);
+                        }
+                        else
+                        {
+                            finalLines.Add(l);
                         }
                     }
-                    else
+                    int blankLines = finalLines.Count(fl => fl == "");
+                    finalTotalLines = finalLines.Count;
+                    float totalHeight = 0f;
+                    foreach (var ln in finalLines)
                     {
-                        image.Mutate(ctx => ctx.DrawText(line, descFont, color, new PointF(posX, posY)));
-                        posY += lineHeight;
-                        currentLine++;
+                        if (ln == "") totalHeight += lineHeight / 2f; else totalHeight += lineHeight;
                     }
+                    if (totalHeight <= maxHeight || fontSize <= 20f || iterations >= maxIterations)
+                    {
+                        finalLineHeight = lineHeight;
+                        finalFontSize = fontSize;
+                        break;
+                    }
+                    fontSize -= 1f;
+                    iterations++;
                 }
+                // 绘制
+                var descFont = fontFamily.CreateFont(finalFontSize, FontStyle.Regular);
+                float drawY = areaTopY;
+                foreach (var line in finalLines)
+                {
+                    if (line == "")
+                    {
+                        drawY += finalLineHeight / 2f;
+                        continue;
+                    }
+                    image.Mutate(ctx => ctx.DrawText(line, descFont, color, new PointF(posX, drawY)));
+                    drawY += finalLineHeight;
+                }
+                // float usedHeight = drawY - areaTopY;
+                // float ratio = (maxHeight > 0f) ? usedHeight / maxHeight * 100f : 0f;
+                // Console.WriteLine($"[CardDescFit] ID={card.Id} 名称=\"{card.Name}\" 字号={finalFontSize:F1}px 行数={finalTotalLines} 高度={usedHeight:F1}px/区域={maxHeight:F1}px 占用比例={ratio:F1}% 迭代={iterations}");
             }
             catch (Exception ex)
             {
