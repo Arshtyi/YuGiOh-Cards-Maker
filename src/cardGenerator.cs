@@ -18,7 +18,7 @@ namespace Yugioh
         private static readonly RectangleF CardNameArea = new RectangleF(89.86f, 96.10f, 1113.00f - 89.86f, 224.71f - 96.10f);
         private static readonly RectangleF PendulumDescriptionArea = new RectangleF(220f, 1300f, 1180f - 220f, 1500f - 1300f);
         private static readonly RectangleF CardDescriptionArea = new RectangleF(110f, 1533f, 1283f - 110f, 1897f - 1533f);
-        private static readonly string FontPath = Path.Combine("asset", "font", "sc", "SweiFistLegCJKtc-Regular.ttf");
+        private static readonly string FontPath = Path.Combine("asset", "font", "sc", "LXGWWenKai-Regular.ttf");
         private const float PendulumIdYOffset = 1f;
         // 资源目录
         private static readonly string FramesDir = "cards";
@@ -285,7 +285,7 @@ namespace Yugioh
                         break;
                     }
                 }
-                float posYOffset = 30f + (95f - fontSize) * 0.4f; // 字号变小向下移动
+                float posYOffset = 20f + (95f - fontSize) * 0.4f; // 字号变小向下移动
                 if (posYOffset < 15f) posYOffset = 15f;
                 if (posYOffset > 60f) posYOffset = 60f;
                 float posY = CardNameArea.Y + posYOffset;
@@ -573,7 +573,7 @@ namespace Yugioh
                     atkText = atkText.PadLeft(4, ' ');
                 }
                 float atkX = 870f;
-                float atkY = 1857f;
+                float atkY = 1859f;
                 image.Mutate(ctx => ctx.DrawText(atkText, atkDefFont, color, new PointF(atkX, atkY)));
                 bool isLinkMonster = card.LinkRating.HasValue && card.LinkRating.Value > 0;
                 if (isLinkMonster && card.LinkRating.HasValue)
@@ -605,7 +605,7 @@ namespace Yugioh
                         defText = defText.PadLeft(4, ' ');
                     }
                     float defX = 1156f;
-                    float defY = 1857f;
+                    float defY = 1859f;
                     image.Mutate(ctx => ctx.DrawText(defText, atkDefFont, color, new PointF(defX, defY)));
                 }
             }
