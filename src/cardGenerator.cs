@@ -275,8 +275,15 @@ namespace Yugioh
                 while (true)
                 {
                     titleFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
-                    measuredWidth = MeasureTextPixelWidth(cardName, titleFont, textColor);
-                    if (measuredWidth <= areaWidth || fontSize <= 30f) break;
+                    // 先使用基于字符权重的估算快速判断是否可能超出
+                    float baseMaxEffectiveLength = 24f;
+                    float currentMaxEffectiveLength = baseMaxEffectiveLength * (95f / fontSize);
+                    float effLen = ComputeEffectiveCharLength(cardName);
+                    if (effLen <= currentMaxEffectiveLength)
+                    {
+                        measuredWidth = MeasureTextPixelWidth(cardName, titleFont, textColor);
+                        if (measuredWidth <= areaWidth || fontSize <= 30f) break;
+                    }
                     fontSize -= 1f;
                     iterations++;
                     if (iterations > 200)
@@ -303,27 +310,41 @@ namespace Yugioh
                 Console.WriteLine($"绘制卡名失败: {ex.Message}");
             }
         }
-        // 计算卡名有效长度（按字符类型赋予不同权重）
+        // 返回单个字符的“有效长度”权重（供统一使用）
+        private static float GetCharEffectiveLength(char c)
+        {
+            // 分隔符（如中点、连字符等）优先处理
+            if (IsSeparatorChar(c))
+            {
+                return 0.7f;
+            }
+            // 大写英文字母计为 0.7
+            if (c >= 'A' && c <= 'Z')
+            {
+                return 0.7f;
+            }
+            // 小写英文字母计为 0.5
+            if (c >= 'a' && c <= 'z')
+            {
+                return 0.5f;
+            }
+            if (IsAsciiNarrowChar(c))
+            {
+                // 其它 ASCII 窄字符（数字、符号等）计为0.5
+                return 0.5f;
+            }
+            // 中文汉字、日文假名等宽字符计为1个字符长度
+            return 1.0f;
+        }
+
+        // 计算字符串的有效长度（按字符类型赋予不同权重）
         private static float ComputeEffectiveCharLength(string cardName)
         {
-            float effectiveLength = 0;
+            float effectiveLength = 0f;
+            if (string.IsNullOrEmpty(cardName)) return 0f;
             foreach (char c in cardName)
             {
-                if (IsAsciiNarrowChar(c))
-                {
-                    // 英文字母、数字和窄符号计为0.5个字符长度
-                    effectiveLength += 0.5f;
-                }
-                else if (IsSeparatorChar(c))
-                {
-                    // 特殊分隔符计为0.7个字符长度
-                    effectiveLength += 0.7f;
-                }
-                else
-                {
-                    // 中文汉字、日文假名等宽字符计为1个字符长度
-                    effectiveLength += 1.0f;
-                }
+                effectiveLength += GetCharEffectiveLength(c);
             }
             return effectiveLength;
         }
@@ -385,6 +406,7 @@ namespace Yugioh
                         {
                             int posX = 106;
                             int posY = 1854;
+                            if (frameType.Contains("pendulum")) posY += 12;
                             image.Mutate(ctx => ctx.DrawImage(atkDefImage, new Point(posX, posY), 1f));
                         }
                         // 攻击力和守备力/Link值
@@ -525,26 +547,14 @@ namespace Yugioh
         {
             if (c == '「' || c == '」' || c == '『' || c == '』' || c == '"' || c == '"' || c == '\'' || c == '\'')
                 return false;
+            if (c == '·') return true;//霞鹜文楷中间隔号是窄字符
             // ASCII
             return c <= 127;
         }
         // 分隔符（如中点、连字符等）
         private static bool IsSeparatorChar(char c)
         {
-            return c == '·' || c == '-' || c == '_' || c == '=' || c == '+' || c == '/';
-        }
-        // 判断是否为标点符号
-        private static bool IsPunctuationChar(char c)
-        {
-            // 中文标点
-            if (c == '，' || c == '。' || c == '、' || c == '：' || c == '；' ||
-                c == '！' || c == '？' || c == '）' || c == '」' || c == '』')
-                return true;
-            // 英文标点
-            if (c == ',' || c == '.' || c == ':' || c == ';' ||
-                c == '!' || c == '?' || c == ')' || c == ']' || c == '}')
-                return true;
-            return false;
+            return c == '-' || c == '_' || c == '=' || c == '+' || c == '/';
         }
 
         // 攻击力和守备力/Link值
@@ -574,6 +584,7 @@ namespace Yugioh
                 }
                 float atkX = 870f;
                 float atkY = 1859f;
+                if (card.FrameType?.ToLower().Contains("pendulum") == true) atkY += 12f;
                 image.Mutate(ctx => ctx.DrawText(atkText, atkDefFont, color, new PointF(atkX, atkY)));
                 bool isLinkMonster = card.LinkRating.HasValue && card.LinkRating.Value > 0;
                 if (isLinkMonster && card.LinkRating.HasValue)
@@ -581,6 +592,7 @@ namespace Yugioh
                     string linkText = card.LinkRating.Value.ToString();
                     float linkX = 1230f;
                     float linkY = 1890f;
+                    // if (card.FrameType?.ToLower().Contains("pendulum") == true) linkY += 12f; // 暂时没有灵摆Link
                     if (File.Exists(linkFontPath))
                     {
                         var linkFontFamily = fontCollection.Add(linkFontPath);
@@ -606,6 +618,7 @@ namespace Yugioh
                     }
                     float defX = 1156f;
                     float defY = 1859f;
+                    if (card.FrameType?.ToLower().Contains("pendulum") == true) defY += 12f;
                     image.Mutate(ctx => ctx.DrawText(defText, atkDefFont, color, new PointF(defX, defY)));
                 }
             }
@@ -905,7 +918,7 @@ namespace Yugioh
                 else if (isPendulum)
                 {
                     areaTopY = 1540f;
-                    maxHeight = 1845f - 1540f;
+                    maxHeight = 1857f - 1540f;
                 }
                 else
                 {
@@ -967,6 +980,21 @@ namespace Yugioh
                 }
                 // 绘制
                 var descFont = fontFamily.CreateFont(finalFontSize, FontStyle.Regular);
+                // // 迭代结束后打印每一行的有效长度及该行的上限（基于最终字号），便于调试
+                // try
+                // {
+                //     float finalMaxEffectiveLength = baseMaxEffectiveLength * (40f / finalFontSize);
+                //     for (int i = 0; i < finalLines.Count; i++)
+                //     {
+                //         var ln = finalLines[i];
+                //         float lnLen = string.IsNullOrEmpty(ln) ? 0f : ComputeEffectiveCharLength(ln);
+                //         Console.WriteLine($"[CardDesc][ID={card.Id}] 行{i + 1}: 长度={lnLen:F2} 上限={finalMaxEffectiveLength:F2} 文本=\"{ln}\"");
+                //     }
+                // }
+                // catch (Exception ex)
+                // {
+                //     Console.WriteLine($"[CardDesc] 打印行长度时异常: {ex.Message}");
+                // }
                 float drawY = areaTopY;
                 foreach (var line in finalLines)
                 {
@@ -1000,19 +1028,7 @@ namespace Yugioh
             float currentLineLength = 0f;
             foreach (char c in line)
             {
-                float charLength = 0f;
-                if (IsAsciiNarrowChar(c))
-                {
-                    charLength = 0.5f;
-                }
-                else if (IsSeparatorChar(c))
-                {
-                    charLength = 0.7f;
-                }
-                else
-                {
-                    charLength = 1.0f;
-                }
+                float charLength = GetCharEffectiveLength(c);
                 if (currentLineLength + charLength > maxEffectiveLength)
                 {
                     result.Add(currentLine);

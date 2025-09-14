@@ -177,6 +177,15 @@ docker cp <CONTAINER_ID>:/app/figure ./figure
 
 ## Thx
 
+### Code
+
+ChatGPT & Claude
+
+### Font
+
+-   [霞鹜文楷](https://github.com/lxgw/LxgwWenKai)
+-   ygo-atk-def、ygo-link、ygo-password(没有找到作者信息)
+
 ### API
 
 -   [YGOProDeck](https://ygoprodeck.com/)
