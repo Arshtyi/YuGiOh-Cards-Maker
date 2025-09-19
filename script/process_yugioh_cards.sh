@@ -4,56 +4,118 @@ cd "$SCRIPT_DIR/.." || exit 1
 TMP_DIR="tmp"
 rm -rf "$TMP_DIR"
 mkdir -p "$TMP_DIR"
-echo "正在安装所需依赖..."
-if [ -n "$GITHUB_ACTIONS" ]; then
-    echo "在GitHub Actions环境中运行,使用python3和pip3..."
-    if command -v python3 &> /dev/null; then
-        echo "使用python3 -m pip安装依赖..."
-        python3 -m pip install -r requirements.txt || {
-            echo "尝试安装pip..."
-            dnf install -y python3-pip && python3 -m pip install -r requirements.txt
-        }
+echo "准备下载并校验外部资源: typeline.conf, token.json, forbidden_and_limited_list..."
+download_file() {
+    url="$1"
+    out="$2"
+    if command -v curl &> /dev/null; then
+        curl -sSfL "$url" -o "$out"
+        return $?
+    elif command -v wget &> /dev/null; then
+        wget -q "$url" -O "$out"
+        return $?
     else
-        echo "错误: 无法找到python3命令,无法安装依赖"
-        exit 1
+        echo "错误: 未找到 curl 或 wget, 无法下载 $url"
+        return 2
     fi
-else
-    if command -v pip &> /dev/null; then
-        echo "使用pip安装依赖..."
-        pip install -r requirements.txt
-    elif command -v pip3 &> /dev/null; then
-        echo "使用pip3安装依赖..."
-        pip3 install -r requirements.txt
-    else
-        echo "警告: 未找到pip或pip3,尝试使用python -m pip安装..."
-        if command -v python &> /dev/null; then
-            python -m pip install -r requirements.txt
-        elif command -v python3 &> /dev/null; then
-            python3 -m pip install -r requirements.txt
-        else
-            echo "错误: 无法找到pip、python或python3命令,无法安装依赖"
-            exit 1
+}
+verify_sha256() {
+    shafile="$1"
+    targetfile="$2"
+    if command -v sha256sum &> /dev/null; then
+        expected=$(awk '{print $1}' "$shafile" | head -n1)
+        actual=$(sha256sum "$targetfile" | awk '{print $1}')
+        if [ "$expected" != "$actual" ]; then
+            echo "校验失败: $targetfile (期望 $expected, 实际 $actual)"
+            return 1
         fi
+        return 0
+    elif command -v shasum &> /dev/null; then
+        expected=$(awk '{print $1}' "$shafile" | head -n1)
+        actual=$(shasum -a 256 "$targetfile" | awk '{print $1}')
+        if [ "$expected" != "$actual" ]; then
+            echo "校验失败: $targetfile (期望 $expected, 实际 $actual)"
+            return 1
+        fi
+        return 0
+    else
+        echo "警告: 未找到 sha256sum 或 shasum, 跳过校验"
+        return 0
     fi
-fi
-echo "正在运行update_banlist.py更新禁限卡表..."
-python update_banlist.py
+}
+mkdir -p res
+TYPELINE_URL="https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type/releases/download/latest/typeline.conf"
+TYPELINE_SHA_URL="https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type/releases/download/latest/typeline.conf.sha256"
+TYPELINE_PATH="res/typeline.conf"
+TYPELINE_SHA_PATH="tmp/typeline.conf.sha256"
+echo "下载 typeline.conf 到 $TYPELINE_PATH"
+download_file "$TYPELINE_URL" "$TYPELINE_PATH"
 if [ $? -ne 0 ]; then
-    echo "update_banlist.py执行失败,请检查错误信息"
+    echo "错误: 下载 typeline.conf 失败"
     exit 1
 fi
-if [ -z "$GITHUB_ACTIONS" ]; then
-    current_fd_limit=$(ulimit -n)
-    if [ "$current_fd_limit" -lt 4096 ]; then
-        echo "增加文件描述符限制到4096（原限制：$current_fd_limit）"
-        ulimit -n 4096 || echo "警告: 无法增加文件描述符限制,可能需要root权限"
-    fi
-    current_proc_limit=$(ulimit -u)
-    if [ "$current_proc_limit" -lt 4096 ]; then
-        echo "增加进程数限制到4096（原限制：$current_proc_limit）"
-        ulimit -u 4096 || echo "警告: 无法增加进程数限制,可能需要root权限"
+download_file "$TYPELINE_SHA_URL" "$TYPELINE_SHA_PATH"
+if [ $? -ne 0 ]; then
+    echo "警告: 无法下载 typeline.conf.sha256, 将跳过校验"
+else
+    verify_sha256 "$TYPELINE_SHA_PATH" "$TYPELINE_PATH"
+    if [ $? -ne 0 ]; then
+        echo "错误: typeline.conf 校验失败"
+        exit 1
     fi
 fi
+rm -f "$TYPELINE_SHA_PATH"
+TOKEN_URL="https://github.com/Arshtyi/YuGiOh-Tokens/releases/download/latest/token.json"
+TOKEN_SHA_URL="https://github.com/Arshtyi/YuGiOh-Tokens/releases/download/latest/token.json.sha256"
+TOKEN_PATH="res/token.json"
+TOKEN_SHA_PATH="tmp/token.json.sha256"
+echo "下载 token.json 到 $TOKEN_PATH"
+download_file "$TOKEN_URL" "$TOKEN_PATH"
+if [ $? -ne 0 ]; then
+    echo "错误: 下载 token.json 失败"
+    exit 1
+fi
+download_file "$TOKEN_SHA_URL" "$TOKEN_SHA_PATH"
+if [ $? -ne 0 ]; then
+    echo "警告: 无法下载 token.json.sha256, 将跳过校验"
+else
+    verify_sha256 "$TOKEN_SHA_PATH" "$TOKEN_PATH"
+    if [ $? -ne 0 ]; then
+        echo "错误: token.json 校验失败"
+        exit 1
+    fi
+fi
+rm -f "$TOKEN_SHA_PATH"
+LIMIT_URL="https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List/releases/download/latest/forbidden_and_limited_list.tar.xz"
+LIMIT_SHA_URL="https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List/releases/download/latest/forbidden_and_limited_list.tar.xz.sha256"
+LIMIT_TAR="tmp/forbidden_and_limited_list.tar.xz"
+LIMIT_SHA="tmp/forbidden_and_limited_list.tar.xz.sha256"
+LIMIT_DIR="res/limit"
+mkdir -p "$LIMIT_DIR"
+echo "下载 forbidden_and_limited_list.tar.xz 到 $LIMIT_TAR"
+download_file "$LIMIT_URL" "$LIMIT_TAR"
+if [ $? -ne 0 ]; then
+    echo "错误: 下载 forbidden_and_limited_list.tar.xz 失败"
+    exit 1
+fi
+download_file "$LIMIT_SHA_URL" "$LIMIT_SHA"
+if [ $? -ne 0 ]; then
+    echo "警告: 无法下载 forbidden_and_limited_list.tar.xz.sha256, 将跳过校验"
+else
+    verify_sha256 "$LIMIT_SHA" "$LIMIT_TAR"
+    if [ $? -ne 0 ]; then
+        echo "错误: forbidden_and_limited_list.tar.xz 校验失败"
+        exit 1
+    fi
+fi
+echo "解压 $LIMIT_TAR 到 $LIMIT_DIR"
+tar -xJf "$LIMIT_TAR" -C "$LIMIT_DIR"
+if [ $? -ne 0 ]; then
+    echo "错误: 解压 forbidden_and_limited_list.tar.xz 失败"
+    exit 1
+fi
+rm -f "$LIMIT_TAR" "$LIMIT_SHA"
+echo "资源下载与校验完成"
 echo "正在下载ygocdb卡片数据..."
 wget -q https://ygocdb.com/api/v0/cards.zip -O "$TMP_DIR/ygocdb_cards.zip"
 unzip -q -o "$TMP_DIR/ygocdb_cards.zip" -d "$TMP_DIR"

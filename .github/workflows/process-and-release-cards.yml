@@ -34,6 +34,36 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               continue-on-error: true
 
+            - name: Compute banlist counts
+              id: counts
+              run: |
+                  set -euo pipefail
+                  echo "Computing banlist counts from ./res/*.json"
+                  ocg_forbidden=$(jq '(.forbidden // []) | length' ./res/ocg.json)
+                  ocg_limited=$(jq '(.limited // []) | length' ./res/ocg.json)
+                  ocg_semi=$(jq '(."semi-limited" // []) | length' ./res/ocg.json)
+                  ocg_total=$((ocg_forbidden + ocg_limited + ocg_semi))
+                  tcg_forbidden=$(jq '(.forbidden // []) | length' ./res/tcg.json)
+                  tcg_limited=$(jq '(.limited // []) | length' ./res/tcg.json)
+                  tcg_semi=$(jq '(."semi-limited" // []) | length' ./res/tcg.json)
+                  tcg_total=$((tcg_forbidden + tcg_limited + tcg_semi))
+                  md_forbidden=$(jq '(.forbidden // []) | length' ./res/md.json)
+                  md_limited=$(jq '(.limited // []) | length' ./res/md.json)
+                  md_semi=$(jq '(."semi-limited" // []) | length' ./res/md.json)
+                  md_total=$((md_forbidden + md_limited + md_semi))
+                  echo "ocg_forbidden=$ocg_forbidden" >> $GITHUB_OUTPUT
+                  echo "ocg_limited=$ocg_limited" >> $GITHUB_OUTPUT
+                  echo "ocg_semi=$ocg_semi" >> $GITHUB_OUTPUT
+                  echo "ocg_total=$ocg_total" >> $GITHUB_OUTPUT
+                  echo "tcg_forbidden=$tcg_forbidden" >> $GITHUB_OUTPUT
+                  echo "tcg_limited=$tcg_limited" >> $GITHUB_OUTPUT
+                  echo "tcg_semi=$tcg_semi" >> $GITHUB_OUTPUT
+                  echo "tcg_total=$tcg_total" >> $GITHUB_OUTPUT
+                  echo "md_forbidden=$md_forbidden" >> $GITHUB_OUTPUT
+                  echo "md_limited=$md_limited" >> $GITHUB_OUTPUT
+                  echo "md_semi=$md_semi" >> $GITHUB_OUTPUT
+                  echo "md_total=$md_total" >> $GITHUB_OUTPUT
+
             - name: Run YuGiOh-Cards-Maker script
               run: |
                   bash ./YuGiOh-Cards-Maker.sh
@@ -72,7 +102,6 @@ jobs:
                       done
                       tar -cJf "./tarballs/cards_$i.tar.xz" -C "$temp_dir" .
                       echo "Created tarball cards_$i.tar.xz with $(( end_idx - start_idx + 1 )) JPG files (from $start_idx to $end_idx)"
-                      # 删除临时目录
                       rm -rf "$temp_dir"
                   done
 
@@ -103,13 +132,32 @@ jobs:
                   tag_name: latest
                   name: YuGiOh Cards & Banlist Data
                   body: |
-                      自动生成的卡图、卡牌信息和禁限卡表,共包含${{ steps.release_body.outputs.total_jpg }}张JPG图片,每个压缩包包含最多10000张JPG图片,另外包含最新的禁限卡表.
+                      自动生成的游戏王卡图、卡牌信息和禁限卡表,共包含${{ steps.release_body.outputs.total_jpg }}张JPG图片,每个压缩包包含最多10000张JPG图片.
+
+                      禁限卡表统计为：
+
+                      | 环境 | 禁止 | 限制 | 准限制 | 总计 |
+                      |:---:|:---:|:---:|:---:|:---:|
+                      | OCG | ${{ steps.counts.outputs.ocg_forbidden }} | ${{ steps.counts.outputs.ocg_limited }} | ${{ steps.counts.outputs.ocg_semi }} | ${{ steps.counts.outputs.ocg_total }} |
+                      | TCG | ${{ steps.counts.outputs.tcg_forbidden }} | ${{ steps.counts.outputs.tcg_limited }} | ${{ steps.counts.outputs.tcg_semi }} | ${{ steps.counts.outputs.tcg_total }} |
+                      | MD  | ${{ steps.counts.outputs.md_forbidden }} | ${{ steps.counts.outputs.md_limited }} | ${{ steps.counts.outputs.md_semi }} | ${{ steps.counts.outputs.md_total }} |
 
                       所有压缩包文件均附带对应的SHA-256校验码文件(.sha256).可以使用以下命令验证文件完整性：
+
                       ```
                       # 验证SHA-256
                       sha256sum -c {filename}.sha256
                       ```
+
+                      项目地址为:[YuGiOh-Cards-Maker](https://github.com/Arshtyi/YuGiOh-Cards-Maker),各依赖与上游如下:
+                      -   禁限信息
+                          -   数据来源:[Yugipedia](https://yugipedia.com/wiki/Yugipedia)
+                          -   上游:[YuGiOh-Forbidden-And-Limited-List](https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List)
+                      -   卡片信息:[YGOPRODeck](https://ygoprodeck.com/)&[YGOCDB](https://ygocdb.com/)
+                      -   衍生物信息:[YuGiOh-Tokens](https://github.com/Arshtyi/YuGiOh-Tokens)
+                      -   种族:[Translations-Of-YuGiOh-Cards-Type](https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type)
+                      -   字体:[霞鹜文楷](https://github.com/lxgw/LxgwWenKai)
+
                   files: |
                       ./tarballs/cards_*.tar.xz
                       ./tarballs/forbidden_and_limited_list.tar.xz

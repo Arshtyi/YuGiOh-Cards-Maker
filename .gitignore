@@ -8,7 +8,7 @@ dev/unofficial_cards.txt
 dev/debug_results.txt
 /.conda
 *.vscode
-/res/limit/
+/res
 __pycache__/
 dev/lines.txt
 /fig

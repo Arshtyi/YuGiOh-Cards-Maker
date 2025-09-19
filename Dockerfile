@@ -9,7 +9,6 @@ RUN dnf -y upgrade \
        jq \
        ImageMagick \
        python3 \
-       python3-pip \
        which \
        tar \
        xz \
@@ -21,7 +20,6 @@ RUN rpm -Uvh https://packages.microsoft.com/config/rhel/8/packages-microsoft-pro
 WORKDIR /app
 COPY . /app
 RUN chmod +x ./YuGiOh-Cards-Maker.sh || true
-RUN if [ -f requirements.txt ]; then pip3 install --no-cache-dir -r requirements.txt || true; fi
 COPY ./entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 RUN useradd -m yugioh || true

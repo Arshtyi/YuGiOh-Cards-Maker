@@ -31,37 +31,14 @@ install_dependencies() {
     if ! check_command curl; then
         $INSTALL_CMD curl || print_red "无法安装 curl,某些功能可能不可用"
     fi
-    if ! check_command unzip; then
-        $INSTALL_CMD unzip || print_red "无法安装 unzip,某些功能可能不可用"
-    fi
     if ! check_command jq; then
         $INSTALL_CMD jq || print_red "无法安装 jq,某些功能可能不可用"
     fi
+    if ! check_command unzip; then
+        $INSTALL_CMD unzip || print_red "无法安装 unzip,某些功能可能不可用"
+    fi
     if ! check_command magick; then
         $INSTALL_CMD imagemagick || print_red "无法安装 ImageMagick,某些功能可能不可用"
-    fi
-    if ! check_command pip && ! check_command pip3; then
-        $INSTALL_CMD python3-pip || print_red "无法安装 pip,某些功能可能不可用"
-    fi
-    if [ -f "requirements.txt" ]; then
-        print_yellow "安装requirements.txt中的Python依赖..."
-        if command -v pip &> /dev/null; then
-            print_yellow "使用pip安装Python依赖..."
-            pip install -r requirements.txt || print_red "pip安装Python依赖失败,尝试其他方法..."
-        elif command -v pip3 &> /dev/null; then
-            print_yellow "使用pip3安装Python依赖..."
-            pip3 install -r requirements.txt || print_red "pip3安装Python依赖失败,尝试其他方法..."
-        elif command -v python &> /dev/null; then
-            print_yellow "使用python -m pip安装Python依赖..."
-            python -m pip install -r requirements.txt || print_red "python -m pip安装Python依赖失败,尝试其他方法..."
-        elif command -v python3 &> /dev/null; then
-            print_yellow "使用python3 -m pip安装Python依赖..."
-            python3 -m pip install -r requirements.txt || print_red "python3 -m pip安装Python依赖失败,某些功能可能不可用"
-        else
-            print_red "无法找到任何可用的pip命令安装Python依赖,某些功能可能不可用"
-        fi
-    else
-        print_red "找不到requirements.txt文件,跳过Python依赖安装"
     fi
     if ! check_command dotnet; then
         print_yellow "未找到 .NET SDK,尝试安装 .NET 8.0..."

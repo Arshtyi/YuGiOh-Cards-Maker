@@ -5,20 +5,29 @@
 -   本项目是一个**自动制作简中游戏王卡片图片及数据信息的无 GUI 工具**,若为 DIY 向制图请往别处
 -   本项目很大程度是为了[Koishi-Plugin-YuGiOh-Cards](https://github.com/Arshtyi/koishi-plugin-yugioh-cards)及其他依赖项目
 -   本项目利用 Github Actions [Release](https://github.com/Arshtyi/YuGiOh-Cards-Maker/releases/tag/latest) 卡牌(图片压缩包以及所有数据)
--   本项目在 Linux (Ubuntu24.04->Fedora41/42)上开发(`Shell+Python+C#`)
+-   本项目在 Linux (Ubuntu24.04->Fedora41/42)上开发
+-   项目构成:`Python3+Shell+C#+Docker`
+
+## 项目上游
+
+1. 衍生物信息来源于[YuGiOh-Tokens](https://github.com/Arshtyi/YuGiOh-Tokens)
+2. 种族翻译信息来源于[Translations-Of-YuGiOh-Cards-Type](https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type)
+3. 禁限卡表信息来源于[YuGiOh-Forbidden-And-Limited-List](https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List)
+4. 依赖与数据源头见[THX](#thx)
 
 ## 项目说明
 
 1. **项目不是为了 DIY**,作者也不会主动进行 DIY 适配
-2. 不会主动做 windows 适配
-3. 不会支持其他语言,卡面元素不会增加
+2. 不会主动做 windows 适配,但是已经有了 Docker 支持
+3. 不会支持其他语言,卡面元素不会增加(包括但不限于卡包、水印、角标)
 4. 不会有高速魔法、黑暗同调、技能卡、卡背、RD 等,但是已经支持了 Token
-5. 不会支持异画(懒得写适配)和非正式卡(如观赏卡)等
-6. 所有卡片的卡名·描述采用 YGOPRO 风格
-7. _禁限卡表支持 OCG/TCG/MD_
+5. 不会支持异画(~~懒得写适配~~，这牵涉到上下游的数据格式兼容与处理问题)和非正式卡(如观赏卡)等
+6. 所有卡片的描述采用 YGOPRO 风格
+7. _禁限卡表仅支持 OCG/TCG/MD_
 
 ## 关于 Token
 
+-   衍生物信息来源于[YuGiOh-Tokens](https://github.com/Arshtyi/YuGiOh-Tokens)
 -   目前 token 的 id 采用公认的召唤衍生物的卡的 id+1 的方式,具体信息见 `cfg.example/`和 `res/`
 -   因为 token 的信息是**手动维护**,所以可能存在错误
 
@@ -29,13 +38,13 @@
     -   `font/`: 字体文件
         -   `sc/`: 简体中文字体
         -   `special/`: 特殊字体(如攻击力/守备力/Link 值/ID 字体)
--   `res/`:资源文件
+-   `res/`:资源文件,已经被切割为上游支撑
+    -   `typeline.conf`: 怪兽卡的 typeline 翻译
     -   `token.json`:衍生物信息
     -   `limit/`:禁限卡表
         -   `ocg.json`:ocg 禁限卡表
         -   `tcg.json`:tcg 禁限卡表
         -   `md.json`:md 禁限卡表
-    -   `typeline.conf`: 怪兽卡的 typeline 翻译
 -   `script/`: 脚本目录
     -   `process_yugioh_cards.sh`: 处理数据的脚本
     -   `extract_ids.sh`:将 token.json 的所有卡片 id 压入 `dev/debug.txt`的脚本
@@ -50,7 +59,7 @@
     -   `trap.json`:陷阱标准 json
 -   `dev/`: 开发目录
     -   `debug.txt`: Debug 处理的卡片 ID 列表
-    -   同时两个 `script/`下 shell 脚本的输出会在此目录下
+    -   同时一些 `script/`下 shell 脚本的输出会在此目录下(主要用于调试和比对一些结果)
 -   `log/`:日志目录(默认没有日志输出到这里)
 -   `figure/`: 卡图输出目录
 -   `src/`: C#程序主要代码目录
@@ -62,8 +71,6 @@
     -   `figure/`: 临时图片目录
 -   `process_yugioh_cards.py`:负责整合数据得到 `tmp/cards.json`
 -   `Program.cs`:生图程序入口
--   `requirements.txt`:Python 环境依赖
--   `update_banlist.py`:更新 `res/limit/`下禁限卡表
 -   `YuGiOh-Cards-Maker.csproj`:C#环境依赖
 -   `YuGiOh-Cards-Maker.sh`:一键脚本
 -   `Dockerfile`:Docker 构建文件
@@ -98,8 +105,6 @@
 ### 安装依赖
 
 ```bash
-# 安装Python依赖
-pip install -r requirements.txt
 # 安装 .NET SDK
 sudo dnf update && sudo dnf install dotnet-sdk-8.0
 # 恢复项目依赖
