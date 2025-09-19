@@ -38,18 +38,18 @@ jobs:
               id: counts
               run: |
                   set -euo pipefail
-                  echo "Computing banlist counts from ./res/*.json"
-                  ocg_forbidden=$(jq '(.forbidden // []) | length' ./res/ocg.json)
-                  ocg_limited=$(jq '(.limited // []) | length' ./res/ocg.json)
-                  ocg_semi=$(jq '(."semi-limited" // []) | length' ./res/ocg.json)
+                  echo "Computing banlist counts from ./res/limit/*.json"
+                  ocg_forbidden=$(jq '(.forbidden // []) | length' ./res/limit/ocg.json)
+                  ocg_limited=$(jq '(.limited // []) | length' ./res/limit/ocg.json)
+                  ocg_semi=$(jq '(."semi-limited" // []) | length' ./res/limit/ocg.json)
                   ocg_total=$((ocg_forbidden + ocg_limited + ocg_semi))
-                  tcg_forbidden=$(jq '(.forbidden // []) | length' ./res/tcg.json)
-                  tcg_limited=$(jq '(.limited // []) | length' ./res/tcg.json)
-                  tcg_semi=$(jq '(."semi-limited" // []) | length' ./res/tcg.json)
+                  tcg_forbidden=$(jq '(.forbidden // []) | length' ./res/limit/tcg.json)
+                  tcg_limited=$(jq '(.limited // []) | length' ./res/limit/tcg.json)
+                  tcg_semi=$(jq '(."semi-limited" // []) | length' ./res/limit/tcg.json)
                   tcg_total=$((tcg_forbidden + tcg_limited + tcg_semi))
-                  md_forbidden=$(jq '(.forbidden // []) | length' ./res/md.json)
-                  md_limited=$(jq '(.limited // []) | length' ./res/md.json)
-                  md_semi=$(jq '(."semi-limited" // []) | length' ./res/md.json)
+                  md_forbidden=$(jq '(.forbidden // []) | length' ./res/limit/md.json)
+                  md_limited=$(jq '(.limited // []) | length' ./res/limit/md.json)
+                  md_semi=$(jq '(."semi-limited" // []) | length' ./res/limit/md.json)
                   md_total=$((md_forbidden + md_limited + md_semi))
                   echo "ocg_forbidden=$ocg_forbidden" >> $GITHUB_OUTPUT
                   echo "ocg_limited=$ocg_limited" >> $GITHUB_OUTPUT
@@ -75,7 +75,7 @@ jobs:
 
             - name: Pack forbidden and limited list
               run: |
-                  tar -cJf "./tarballs/forbidden_and_limited_list.tar.xz" -C "./res/limit" .
+                  tar -cJf "./tarballs/forbidden_and_limited_list.tar.xz" -C "./res/limit/limit" .
                   echo "Created tarball forbidden_and_limited_list.tar.xz with files from res/limit directory"
 
             - name: Pack JPG files into multiple tarballs (10000 files per tarball)
