@@ -75,7 +75,7 @@ jobs:
 
             - name: Pack forbidden and limited list
               run: |
-                  tar -cJf "./tarballs/forbidden_and_limited_list.tar.xz" -C "./res/limit/limit" .
+                  tar -cJf "./tarballs/forbidden_and_limited_list.tar.xz" -C "./res/limit" .
                   echo "Created tarball forbidden_and_limited_list.tar.xz with files from res/limit directory"
 
             - name: Pack JPG files into multiple tarballs (10000 files per tarball)
