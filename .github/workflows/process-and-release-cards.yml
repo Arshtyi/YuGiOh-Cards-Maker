@@ -132,7 +132,7 @@ jobs:
                   tag_name: latest
                   name: YuGiOh Cards & Banlist Data
                   body: |
-                      自动生成的游戏王卡图、卡牌信息和禁限卡表,共包含${{ steps.release_body.outputs.total_jpg }}张JPG图片,每个压缩包包含最多10000张JPG图片.
+                      自动生成的游戏王卡图、卡牌信息和禁限卡表,共包含${{ steps.release_body.outputs.total_jpg }}张JPG图片,每个压缩包包含最多10000张JPG图片.(文件failure.txt中列出所有处理失败的卡片ID包括其原因)
 
                       禁限卡表统计为：
 
@@ -162,6 +162,7 @@ jobs:
                       ./tarballs/cards_*.tar.xz
                       ./tarballs/forbidden_and_limited_list.tar.xz
                       ./tmp/cards.json
+                      ./log/failure.txt
                       ./checksums/*.sha256
                   draft: false
                   prerelease: false

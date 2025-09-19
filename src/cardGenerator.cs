@@ -15,6 +15,7 @@ namespace Yugioh
 {
     public static class CardGenerator
     {
+        private static readonly object failureFileLock = new object();
         private static readonly RectangleF CardNameArea = new RectangleF(89.86f, 96.10f, 1113.00f - 89.86f, 224.71f - 96.10f);
         private static readonly RectangleF PendulumDescriptionArea = new RectangleF(220f, 1300f, 1180f - 220f, 1500f - 1300f);
         private static readonly RectangleF CardDescriptionArea = new RectangleF(110f, 1533f, 1283f - 110f, 1897f - 1533f);
@@ -61,6 +62,20 @@ namespace Yugioh
             {
                 Console.WriteLine($"错误: 未找到卡片数据文件: {cardsJsonPath}");
                 return;
+            }
+            try
+            {
+                string failureFile = Path.Combine("log", "failure.txt");
+                var failureDir = Path.GetDirectoryName(failureFile);
+                if (!string.IsNullOrEmpty(failureDir) && !Directory.Exists(failureDir))
+                {
+                    Directory.CreateDirectory(failureDir);
+                }
+                File.WriteAllText(failureFile, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"警告: 无法清空 log/failure.txt: {ex.Message}");
             }
             // 清空输出
             if (Directory.Exists(outputFigureDir))
@@ -142,7 +157,9 @@ namespace Yugioh
                     }
                     if (frameFile == null)
                     {
-                        Console.WriteLine($"错误: 无法找到卡框,ID: {card.Id}, 名称: {card.Name}, 框架类型: {frameType}");
+                        string reason = $"无法找到卡框, 框架类型: {frameType}";
+                        Console.WriteLine($"错误: {reason},ID: {card.Id}, 名称: {card.Name}");
+                        WriteFailureRecord(card.Id, reason);
                         Interlocked.Increment(ref failed);
                         return;
                     }
@@ -153,8 +170,15 @@ namespace Yugioh
                     {
                         // 属性
                         DrawAttributeImage(image, card, assetFigureDir);
-                        // 卡图
-                        DrawCardArtwork(image, card, "tmp/figure");
+                        // 卡图 - 如果没有卡图则跳过该卡并记录到 log/failure.txt
+                        bool hasArtwork = DrawCardArtwork(image, card, "tmp/figure");
+                        if (!hasArtwork)
+                        {
+                            string reason = "未找到卡图或加载卡图失败";
+                            WriteFailureRecord(card.Id, reason);
+                            Interlocked.Increment(ref failed);
+                            return;
+                        }
                         // 灵摆卡->灵摆框
                         if (frameType.Contains("pendulum"))
                         {
@@ -252,12 +276,20 @@ namespace Yugioh
                 }
                 catch (Exception ex)
                 {
+                    string reason = $"处理异常: {ex.Message}";
                     Console.WriteLine($"处理卡片失败: ID={card.Id}, 名称={card.Name}, 错误: {ex.Message}");
+                    WriteFailureRecord(card.Id, reason);
                     Interlocked.Increment(ref failed);
                 }
             });
             Console.WriteLine($"卡片生成完成！成功: {processed}, 失败: {failed}");
-            Console.WriteLine($"输出目录: {Path.GetFullPath(outputFigureDir)}");
+            int total = processed + failed;
+            double successRate = 0.0;
+            if (total > 0) successRate = (double)processed / total * 100.0;
+            Console.WriteLine($"成功率: {successRate:F2}% ({processed}/{total})");
+            Console.WriteLine($"卡图输出目录: {Path.GetFullPath(outputFigureDir)}");
+            string failureFilePath = Path.GetFullPath(Path.Combine("log", "failure.txt"));
+            Console.WriteLine($"失败记录输出目录: {failureFilePath}");
         }
         // 卡名
         private static void DrawCardName(Image image, string cardName, bool isSpecialCard)
@@ -658,7 +690,7 @@ namespace Yugioh
             }
         }
         // 卡图
-        private static void DrawCardArtwork(Image image, Card card, string figureDir)
+        private static bool DrawCardArtwork(Image image, Card card, string figureDir)
         {
             try
             {
@@ -674,15 +706,18 @@ namespace Yugioh
                         var resizedImage = cardImage.Clone(ctx => ctx.Resize((int)(cardImage.Width * scale), (int)(cardImage.Height * scale)));
                         image.Mutate(ctx => ctx.DrawImage(resizedImage, new Point(posX, posY), 1f));
                     }
+                    return true;
                 }
                 else
                 {
                     Console.WriteLine($"警告: 未找到卡图: {cardImagePath},ID={card.Id}, 名称={card.Name}");
+                    return false;
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"添加卡图失败: {ex.Message}, ID={card.Id}, 名称={card.Name}");
+                return false;
             }
         }
         // 魔法卡/陷阱卡字样及icon
@@ -1046,6 +1081,29 @@ namespace Yugioh
                 result.Add(currentLine);
             }
             return result;
+        }
+        // 将失败记录写入 log/failure.txt（包含时间、ID、原因），线程安全
+        private static void WriteFailureRecord(object idObj, string reason)
+        {
+            try
+            {
+                string id = idObj?.ToString() ?? "";
+                string failureFile = Path.Combine("log", "failure.txt");
+                var dir = Path.GetDirectoryName(failureFile);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ID={id} 原因={reason}{Environment.NewLine}";
+                lock (failureFileLock)
+                {
+                    File.AppendAllText(failureFile, line);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"警告: 无法写入 log/failure.txt: {ex.Message}");
+            }
         }
     }
 }

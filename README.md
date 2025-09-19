@@ -24,6 +24,7 @@
 5. 不会支持异画(~~懒得写适配~~，这牵涉到上下游的数据格式兼容与处理问题)和非正式卡(如观赏卡)等
 6. 所有卡片的描述采用 YGOPRO 风格
 7. _禁限卡表仅支持 OCG/TCG/MD_
+8. 由于 [YGOProDeck](https://ygoprodeck.com/)与[YGOCDB](https://ygocdb.com/)的更新速度不同，本项目的卡图生成几乎不可能做到 100%成功，这是非常正常的(也就是`log/failure.txt`文件一定不为空)
 
 ## 关于 Token
 
@@ -60,7 +61,8 @@
 -   `dev/`: 开发目录
     -   `debug.txt`: Debug 处理的卡片 ID 列表
     -   同时一些 `script/`下 shell 脚本的输出会在此目录下(主要用于调试和比对一些结果)
--   `log/`:日志目录(默认没有日志输出到这里)
+-   `log/`:日志目录
+    -   `failure.txt`:所有失败的卡片 id 与原因
 -   `figure/`: 卡图输出目录
 -   `src/`: C#程序主要代码目录
     -   `card.cs`:卡片类定义
