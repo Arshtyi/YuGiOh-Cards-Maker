@@ -34,6 +34,12 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               continue-on-error: true
 
+            - name: Run YuGiOh-Cards-Maker script
+              run: |
+                  bash ./YuGiOh-Cards-Maker.sh
+              env:
+                  GITHUB_ACTIONS: true
+
             - name: Compute banlist counts
               id: counts
               run: |
@@ -63,12 +69,6 @@ jobs:
                   echo "md_limited=$md_limited" >> $GITHUB_OUTPUT
                   echo "md_semi=$md_semi" >> $GITHUB_OUTPUT
                   echo "md_total=$md_total" >> $GITHUB_OUTPUT
-
-            - name: Run YuGiOh-Cards-Maker script
-              run: |
-                  bash ./YuGiOh-Cards-Maker.sh
-              env:
-                  GITHUB_ACTIONS: true
 
             - name: Create directory for tarballs
               run: mkdir -p ./tarballs
