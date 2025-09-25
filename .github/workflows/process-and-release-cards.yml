@@ -146,7 +146,7 @@ jobs:
             printf "| MD  | %s | %s | %s | %s |\n\n" "$md_forbidden" "$md_limited" "$md_semi" "$md_total"
             printf "所有压缩包文件均附带对应的SHA-256校验码文件(.sha256).可以使用以下命令验证文件完整性：\n\n"
             printf "```\n# 验证SHA-256\nsha256sum -c {filename}.sha256\n```\n\n"
-            printf "项目地址为:[YuGiOh-Cards-Maker](https://github.com/Arshtyi/YuGiOh-Cards-Maker),各依赖与上游如下:\n"
+            printf "项目地址为[YuGiOh-Cards-Maker](https://github.com/Arshtyi/YuGiOh-Cards-Maker),各依赖与上游如下:\n"
             printf "-   禁限信息\n"
             printf "    -   数据来源:[Yugipedia](https://yugipedia.com/wiki/Yugipedia)\n"
             printf "    -   上游:[YuGiOh-Forbidden-And-Limited-List](https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List)\n"

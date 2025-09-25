@@ -193,7 +193,7 @@ namespace Yugioh
             }
             LoadFonts();
             // 并行处理
-            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 500 };
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 200 };
             int processed = 0;
             int failed = 0;
             Parallel.ForEach(cardsToProcess, parallelOptions, card =>
