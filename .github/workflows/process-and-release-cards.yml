@@ -144,16 +144,19 @@ jobs:
             printf "| OCG | %s | %s | %s | %s |\n" "$ocg_forbidden" "$ocg_limited" "$ocg_semi" "$ocg_total"
             printf "| TCG | %s | %s | %s | %s |\n" "$tcg_forbidden" "$tcg_limited" "$tcg_semi" "$tcg_total"
             printf "| MD  | %s | %s | %s | %s |\n\n" "$md_forbidden" "$md_limited" "$md_semi" "$md_total"
-            printf "所有压缩包文件均附带对应的SHA-256校验码文件(.sha256).可以使用以下命令验证文件完整性：\n\n"
-            printf "```\n# 验证SHA-256\nsha256sum -c {filename}.sha256\n```\n\n"
-            printf "项目地址为[YuGiOh-Cards-Maker](https://github.com/Arshtyi/YuGiOh-Cards-Maker),各依赖与上游如下:\n"
-            printf "-   禁限信息\n"
-            printf "    -   数据来源:[Yugipedia](https://yugipedia.com/wiki/Yugipedia)\n"
-            printf "    -   上游:[YuGiOh-Forbidden-And-Limited-List](https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List)\n"
-            printf "-   卡片信息:[YGOPRODeck](https://ygoprodeck.com/)&[YGOCDB](https://ygocdb.com/)\n"
-            printf "-   衍生物信息:[YuGiOh-Tokens](https://github.com/Arshtyi/YuGiOh-Tokens)\n"
-            printf "-   种族:[Translations-Of-YuGiOh-Cards-Type](https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type)\n"
-            printf "-   字体:[霞鹜文楷](https://github.com/lxgw/LxgwWenKai)\n\n"
+            printf "%s\n\n" "所有压缩包文件均附带对应的SHA-256校验码文件(.sha256).可以使用以下命令验证文件完整性："
+            printf "%s\n" '```'
+            printf "%s\n" '# 验证SHA-256'
+            printf "%s\n" 'sha256sum -c {filename}.sha256'
+            printf "%s\n\n" '```'
+            printf "%s\n" "项目地址为[YuGiOh-Cards-Maker](https://github.com/Arshtyi/YuGiOh-Cards-Maker),各依赖与上游如下:"
+            printf "%s\n" "-   禁限信息"
+            printf "%s\n" "    -   数据来源:[Yugipedia](https://yugipedia.com/wiki/Yugipedia)"
+            printf "%s\n" "    -   上游:[YuGiOh-Forbidden-And-Limited-List](https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List)"
+            printf "%s\n" "-   卡片信息:[YGOPRODeck](https://ygoprodeck.com/)&[YGOCDB](https://ygocdb.com/)"
+            printf "%s\n" "-   衍生物信息:[YuGiOh-Tokens](https://github.com/Arshtyi/YuGiOh-Tokens)"
+            printf "%s\n" "-   种族:[Translations-Of-YuGiOh-Cards-Type](https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type)"
+            printf "%s\n\n" "-   字体:[霞鹜文楷](https://github.com/lxgw/LxgwWenKai)"
             if [ -s "$failure_file" ]; then
               printf "失败卡片明细(同样记载于`failure.txt`):\n\n"
               printf "%s" "$table_header"
