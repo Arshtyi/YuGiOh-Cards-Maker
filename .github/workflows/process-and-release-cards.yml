@@ -1,170 +1,182 @@
 name: YuGiOh Cards Data Processing and Release
 on:
-    schedule:
-        - cron: "0 16 * * *"
-    push:
-        paths: ".github/workflows/**"
+  schedule:
+    - cron: "0 16 * * *"
+  push:
+    paths: ".github/workflows/**"
 jobs:
-    process-and-release:
-        runs-on: ubuntu-latest
-        container:
-            image: fedora:latest
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v3
-              with:
-                  fetch-depth: 0
+  process-and-release:
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-            - name: Install dependencies
-              run: |
-                  dnf update -y
-                  dnf install -y wget curl unzip jq ImageMagick dotnet-sdk-8.0 tar xz git python3 python3-pip
+      - name: Install dependencies
+        run: |
+          dnf update -y
+          dnf install -y wget curl unzip jq ImageMagick dotnet-sdk-8.0 tar xz git python3 python3-pip
 
-            - name: Make shell scripts executable
-              run: |
-                  chmod +x ./YuGiOh-Cards-Maker.sh ./script/process_yugioh_cards.sh
+      - name: Make shell scripts executable
+        run: |
+          chmod +x ./*.sh
 
-            - name: Delete existing release
-              uses: dev-drprasad/delete-tag-and-release@v0.2.1
-              with:
-                  tag_name: latest
-                  delete_release: true
-                  repo: ${{ github.repository }}
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              continue-on-error: true
+      - name: Check if 'latest' tag exists
+        id: check_latest_tag
+        shell: bash
+        run: |
+          set -e
+          if git ls-remote --tags origin latest | grep -q "refs/tags/latest"; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag 'latest' exists."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Tag 'latest' does not exist; skipping deletion."
+          fi
 
-            - name: Run YuGiOh-Cards-Maker script
-              run: |
-                  bash ./YuGiOh-Cards-Maker.sh
-              env:
-                  GITHUB_ACTIONS: true
+      - name: Delete existing release
+        if: steps.check_latest_tag.outputs.exists == 'true'
+        uses: dev-drprasad/delete-tag-and-release@v0.2.1
+        with:
+          tag_name: latest
+          delete_release: true
+          repo: ${{ github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: false
 
-            - name: Compute banlist counts
-              id: counts
-              run: |
-                  set -euo pipefail
-                  echo "Computing banlist counts from ./res/limit/*.json"
-                  ocg_forbidden=$(jq '(.forbidden // []) | length' ./res/limit/ocg.json)
-                  ocg_limited=$(jq '(.limited // []) | length' ./res/limit/ocg.json)
-                  ocg_semi=$(jq '(."semi-limited" // []) | length' ./res/limit/ocg.json)
-                  ocg_total=$((ocg_forbidden + ocg_limited + ocg_semi))
-                  tcg_forbidden=$(jq '(.forbidden // []) | length' ./res/limit/tcg.json)
-                  tcg_limited=$(jq '(.limited // []) | length' ./res/limit/tcg.json)
-                  tcg_semi=$(jq '(."semi-limited" // []) | length' ./res/limit/tcg.json)
-                  tcg_total=$((tcg_forbidden + tcg_limited + tcg_semi))
-                  md_forbidden=$(jq '(.forbidden // []) | length' ./res/limit/md.json)
-                  md_limited=$(jq '(.limited // []) | length' ./res/limit/md.json)
-                  md_semi=$(jq '(."semi-limited" // []) | length' ./res/limit/md.json)
-                  md_total=$((md_forbidden + md_limited + md_semi))
-                  echo "ocg_forbidden=$ocg_forbidden" >> $GITHUB_OUTPUT
-                  echo "ocg_limited=$ocg_limited" >> $GITHUB_OUTPUT
-                  echo "ocg_semi=$ocg_semi" >> $GITHUB_OUTPUT
-                  echo "ocg_total=$ocg_total" >> $GITHUB_OUTPUT
-                  echo "tcg_forbidden=$tcg_forbidden" >> $GITHUB_OUTPUT
-                  echo "tcg_limited=$tcg_limited" >> $GITHUB_OUTPUT
-                  echo "tcg_semi=$tcg_semi" >> $GITHUB_OUTPUT
-                  echo "tcg_total=$tcg_total" >> $GITHUB_OUTPUT
-                  echo "md_forbidden=$md_forbidden" >> $GITHUB_OUTPUT
-                  echo "md_limited=$md_limited" >> $GITHUB_OUTPUT
-                  echo "md_semi=$md_semi" >> $GITHUB_OUTPUT
-                  echo "md_total=$md_total" >> $GITHUB_OUTPUT
+      - name: Run YuGiOh-Cards-Maker script
+        run: |
+          bash ./YuGiOh-Cards-Maker.sh
+        env:
+          GITHUB_ACTIONS: true
 
-            - name: Create directory for tarballs
-              run: mkdir -p ./tarballs
+      - name: Pack forbidden and limited list
+        run: |
+          mkdir -p ./tarballs
+          tar -cJf "./tarballs/forbidden_and_limited_list.tar.xz" -C "./res/limit" .
 
-            - name: Pack forbidden and limited list
-              run: |
-                  tar -cJf "./tarballs/forbidden_and_limited_list.tar.xz" -C "./res/limit" .
-                  echo "Created tarball forbidden_and_limited_list.tar.xz with files from res/limit directory"
+      - name: Pack JPG files into multiple tarballs (10000 files per tarball)
+        run: |
+          jpg_files=($(find ./figure -name "*.jpg" -type f | sort))
+          total_files=${#jpg_files[@]}
+          if [ $total_files -eq 0 ]; then
+            echo "No JPG files found in figure directory"
+            exit 1
+          fi
+          files_per_package=10000
+          total_packages=$(( (total_files + files_per_package - 1) / files_per_package ))
+          echo "总文件数: $total_files, 每包文件数: $files_per_package, 总包数: $total_packages"
+          for (( i=0; i<$total_packages; i++ )); do
+            start_idx=$(( i * files_per_package ))
+            end_idx=$(( start_idx + files_per_package - 1 ))
+            if [ $end_idx -ge $total_files ]; then
+              end_idx=$(( total_files - 1 ))
+            fi
+            temp_dir="./temp_package_$i"
+            mkdir -p "$temp_dir"
+            for (( j=start_idx; j<=end_idx; j++ )); do
+              cp "${jpg_files[$j]}" "$temp_dir/"
+            done
+            tar -cJf "./tarballs/cards_$i.tar.xz" -C "$temp_dir" .
+            echo "Created tarball cards_$i.tar.xz with $(( end_idx - start_idx + 1 )) JPG files (from $start_idx to $end_idx)"
+            rm -rf "$temp_dir"
+          done
 
-            - name: Pack JPG files into multiple tarballs (10000 files per tarball)
-              run: |
-                  jpg_files=($(find ./figure -name "*.jpg" -type f | sort))
-                  total_files=${#jpg_files[@]}
-                  if [ $total_files -eq 0 ]; then
-                    echo "No JPG files found in figure directory"
-                    exit 1
-                  fi
-                  files_per_package=10000
-                  total_packages=$(( (total_files + files_per_package - 1) / files_per_package ))
-                  echo "总文件数: $total_files, 每包文件数: $files_per_package, 总包数: $total_packages"
-                  for (( i=0; i<$total_packages; i++ )); do
-                      start_idx=$(( i * files_per_package ))
-                      end_idx=$(( start_idx + files_per_package - 1 ))
-                      if [ $end_idx -ge $total_files ]; then
-                          end_idx=$(( total_files - 1 ))
-                      fi
-                      temp_dir="./temp_package_$i"
-                      mkdir -p "$temp_dir"
-                      for (( j=start_idx; j<=end_idx; j++ )); do
-                          cp "${jpg_files[$j]}" "$temp_dir/"
-                      done
-                      tar -cJf "./tarballs/cards_$i.tar.xz" -C "$temp_dir" .
-                      echo "Created tarball cards_$i.tar.xz with $(( end_idx - start_idx + 1 )) JPG files (from $start_idx to $end_idx)"
-                      rm -rf "$temp_dir"
-                  done
+      - name: Generate checksums for compressed files
+        run: |
+          mkdir -p ./checksums
+          echo "生成 forbidden_and_limited_list.tar.xz 的校验码文件..."
+          (cd ./tarballs && sha256sum forbidden_and_limited_list.tar.xz) > ./checksums/forbidden_and_limited_list.tar.xz.sha256
+          echo "生成卡图压缩包的校验码文件..."
+          for tarball in ./tarballs/cards_*.tar.xz; do
+            filename=$(basename "$tarball")
+            echo "生成 $filename 的校验码文件..."
+            (cd ./tarballs && sha256sum $(basename "$tarball")) > "./checksums/$filename.sha256"
+          done
+          echo "已生成的校验文件列表:"
+          ls -la ./checksums/
 
-            - name: Count JPG files and create release body
-              id: release_body
-              run: |
-                  total_files=$(find ./figure -name "*.jpg" -type f | wc -l)
-                  echo "total_jpg=$total_files" >> $GITHUB_OUTPUT
+      - name: Assemble release body (with failures)
+        shell: bash
+        run: |
+          set -euo pipefail
+          total_jpg=$(find ./figure -name "*.jpg" -type f | wc -l | awk '{print $1}')
+          ocg_forbidden=$(jq '(.forbidden // []) | length' ./res/limit/ocg.json)
+          ocg_limited=$(jq '(.limited // []) | length' ./res/limit/ocg.json)
+          ocg_semi=$(jq '(."semi-limited" // []) | length' ./res/limit/ocg.json)
+          ocg_total=$((ocg_forbidden + ocg_limited + ocg_semi))
+          tcg_forbidden=$(jq '(.forbidden // []) | length' ./res/limit/tcg.json)
+          tcg_limited=$(jq '(.limited // []) | length' ./res/limit/tcg.json)
+          tcg_semi=$(jq '(."semi-limited" // []) | length' ./res/limit/tcg.json)
+          tcg_total=$((tcg_forbidden + tcg_limited + tcg_semi))
+          md_forbidden=$(jq '(.forbidden // []) | length' ./res/limit/md.json)
+          md_limited=$(jq '(.limited // []) | length' ./res/limit/md.json)
+          md_semi=$(jq '(."semi-limited" // []) | length' ./res/limit/md.json)
+          md_total=$((md_forbidden + md_limited + md_semi))
+          failure_file="./log/failure.txt"
+          cards_file="./tmp/cards.json"
+          table_header=""
+          table_rows=""
+          if [ -s "$failure_file" ]; then
+            total_fail=$(grep -E 'ID=[0-9]+' "$failure_file" | wc -l | awk '{print $1}')
+            table_header="失败卡片信息（共${total_fail}条）：\n\n| ID | 名称 | 原因 |\n|:--:|:--:|:--:|\n"
+            while IFS= read -r line; do
+              id=$(echo "$line" | sed -n 's/.*ID=\([0-9]\+\).*/\1/p')
+              reason=$(echo "$line" | sed -n 's/.*原因=\(.*\)$/\1/p')
+              if [ -n "${id:-}" ]; then
+                name=$(jq -r --arg id "$id" '.[$id].name // empty' "$cards_file" 2>/dev/null || true)
+                [ -z "${name:-}" ] && name="(未找到名称)"
+                name_escaped=$(printf %s "$name" | sed 's/|/\\|/g')
+                reason_escaped=$(printf %s "${reason:-}" | sed 's/|/\\|/g')
+                table_rows+="${id} | ${name_escaped} | ${reason_escaped}\n"
+              fi
+            done < "$failure_file"
+          fi
 
-            - name: Generate checksums for compressed files
-              run: |
-                  mkdir -p ./checksums
-                  echo "生成 forbidden_and_limited_list.tar.xz 的校验码文件..."
-                  (cd ./tarballs && sha256sum forbidden_and_limited_list.tar.xz) > ./checksums/forbidden_and_limited_list.tar.xz.sha256
-                  echo "生成卡图压缩包的校验码文件..."
-                  for tarball in ./tarballs/cards_*.tar.xz; do
-                      filename=$(basename "$tarball")
-                      echo "生成 $filename 的校验码文件..."
-                      (cd ./tarballs && sha256sum $(basename "$tarball")) > "./checksums/$filename.sha256"
-                  done
-                  echo "已生成的校验文件列表:"
-                  ls -la ./checksums/
+          {
+            printf "自动生成的游戏王卡图、卡牌信息和禁限卡表(仅OCG、TCG、MD三方环境),共包含%s张JPG图片,每个压缩包包含最多10000张JPG图片(文件failure.txt中列出所有处理失败的卡片ID包括其原因)\n\n" "$total_jpg"
+            printf "禁限卡表统计为：\n\n"
+            printf "| 环境 | 禁止 | 限制 | 准限制 | 总计 |\n|:---:|:---:|:---:|:---:|:---:|\n"
+            printf "| OCG | %s | %s | %s | %s |\n" "$ocg_forbidden" "$ocg_limited" "$ocg_semi" "$ocg_total"
+            printf "| TCG | %s | %s | %s | %s |\n" "$tcg_forbidden" "$tcg_limited" "$tcg_semi" "$tcg_total"
+            printf "| MD  | %s | %s | %s | %s |\n\n" "$md_forbidden" "$md_limited" "$md_semi" "$md_total"
+            printf "所有压缩包文件均附带对应的SHA-256校验码文件(.sha256).可以使用以下命令验证文件完整性：\n\n"
+            printf "```\n# 验证SHA-256\nsha256sum -c {filename}.sha256\n```\n\n"
+            printf "项目地址为:[YuGiOh-Cards-Maker](https://github.com/Arshtyi/YuGiOh-Cards-Maker),各依赖与上游如下:\n"
+            printf "-   禁限信息\n"
+            printf "    -   数据来源:[Yugipedia](https://yugipedia.com/wiki/Yugipedia)\n"
+            printf "    -   上游:[YuGiOh-Forbidden-And-Limited-List](https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List)\n"
+            printf "-   卡片信息:[YGOPRODeck](https://ygoprodeck.com/)&[YGOCDB](https://ygocdb.com/)\n"
+            printf "-   衍生物信息:[YuGiOh-Tokens](https://github.com/Arshtyi/YuGiOh-Tokens)\n"
+            printf "-   种族:[Translations-Of-YuGiOh-Cards-Type](https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type)\n"
+            printf "-   字体:[霞鹜文楷](https://github.com/lxgw/LxgwWenKai)\n\n"
+            if [ -s "$failure_file" ]; then
+              printf "失败卡片明细(同样记载于`failure.txt`):\n\n"
+              printf "%s" "$table_header"
+              printf "%b" "$table_rows"
+            else
+              printf "无失败卡片处理\n"
+            fi
+          } > RELEASE_BODY.md
 
-            - name: Create/Update release
-              id: create_release
-              uses: softprops/action-gh-release@v1
-              with:
-                  tag_name: latest
-                  name: YuGiOh Cards & Banlist Data
-                  body: |
-                      自动生成的游戏王卡图、卡牌信息和禁限卡表,共包含${{ steps.release_body.outputs.total_jpg }}张JPG图片,每个压缩包包含最多10000张JPG图片.(文件failure.txt中列出所有处理失败的卡片ID包括其原因)
-
-                      禁限卡表统计为：
-
-                      | 环境 | 禁止 | 限制 | 准限制 | 总计 |
-                      |:---:|:---:|:---:|:---:|:---:|
-                      | OCG | ${{ steps.counts.outputs.ocg_forbidden }} | ${{ steps.counts.outputs.ocg_limited }} | ${{ steps.counts.outputs.ocg_semi }} | ${{ steps.counts.outputs.ocg_total }} |
-                      | TCG | ${{ steps.counts.outputs.tcg_forbidden }} | ${{ steps.counts.outputs.tcg_limited }} | ${{ steps.counts.outputs.tcg_semi }} | ${{ steps.counts.outputs.tcg_total }} |
-                      | MD  | ${{ steps.counts.outputs.md_forbidden }} | ${{ steps.counts.outputs.md_limited }} | ${{ steps.counts.outputs.md_semi }} | ${{ steps.counts.outputs.md_total }} |
-
-                      所有压缩包文件均附带对应的SHA-256校验码文件(.sha256).可以使用以下命令验证文件完整性：
-
-                      ```
-                      # 验证SHA-256
-                      sha256sum -c {filename}.sha256
-                      ```
-
-                      项目地址为:[YuGiOh-Cards-Maker](https://github.com/Arshtyi/YuGiOh-Cards-Maker),各依赖与上游如下:
-                      -   禁限信息
-                          -   数据来源:[Yugipedia](https://yugipedia.com/wiki/Yugipedia)
-                          -   上游:[YuGiOh-Forbidden-And-Limited-List](https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List)
-                      -   卡片信息:[YGOPRODeck](https://ygoprodeck.com/)&[YGOCDB](https://ygocdb.com/)
-                      -   衍生物信息:[YuGiOh-Tokens](https://github.com/Arshtyi/YuGiOh-Tokens)
-                      -   种族:[Translations-Of-YuGiOh-Cards-Type](https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type)
-                      -   字体:[霞鹜文楷](https://github.com/lxgw/LxgwWenKai)
-
-                  files: |
-                      ./tarballs/cards_*.tar.xz
-                      ./tarballs/forbidden_and_limited_list.tar.xz
-                      ./tmp/cards.json
-                      ./log/*.txt
-                      ./checksums/*.sha256
-                  draft: false
-                  prerelease: false
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create/Update release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: latest
+          name: YuGiOh Cards & Banlist Data
+          body_path: RELEASE_BODY.md
+          files: |
+            ./tarballs/cards_*.tar.xz
+            ./tarballs/forbidden_and_limited_list.tar.xz
+            ./tmp/cards.json
+            ./log/*.txt
+            ./checksums/*.sha256
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

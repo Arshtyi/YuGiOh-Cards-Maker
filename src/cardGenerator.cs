@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Threading;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Formats.Png;
@@ -28,12 +29,41 @@ namespace Yugioh
         private static readonly string IndicatorsDir = "indicators";
         private static readonly string IconsDir = "icons";
         private static readonly string ArrowsDir = "arrows";
+        private static readonly ConcurrentDictionary<string, Lazy<Image<Rgba32>>> imageCache = new();
         private static Font? titleBlackFont;
         private static Font? titleWhiteFont;
         private static Color titleBlackColor;
         private static Color titleWhiteColor;
         private static Color titleShadowColor;
         private static FontFamily fontFamily;
+        private static FontFamily? atkDefFontFamily;
+        private static FontFamily? linkFontFamily;
+        private static FontFamily? passwordFontFamily;
+
+        private static Image CloneFromCache(string filePath)
+        {
+            if (!File.Exists(filePath))
+            {
+                throw new FileNotFoundException($"未找到图片文件: {filePath}", filePath);
+            }
+            var lazy = imageCache.GetOrAdd(filePath, p => new Lazy<Image<Rgba32>>(() => Image.Load<Rgba32>(p), LazyThreadSafetyMode.ExecutionAndPublication));
+            return lazy.Value.Clone();
+        }
+        private static void ClearImageCache()
+        {
+            foreach (var kv in imageCache)
+            {
+                try
+                {
+                    if (kv.Value.IsValueCreated)
+                    {
+                        kv.Value.Value.Dispose();
+                    }
+                }
+                catch { }
+            }
+            imageCache.Clear();
+        }
         private static FontCollection LoadFonts()
         {
             var fontCollection = new FontCollection();
@@ -47,12 +77,34 @@ namespace Yugioh
                 titleBlackColor = Color.Black;
                 titleWhiteColor = Color.White;
                 titleShadowColor = Color.FromRgba(0, 0, 0, 80);
+                TryLoadSpecialFont(fontCollection, Path.Combine("asset", "font", "special", "ygo-atk-def.ttf"), out atkDefFontFamily);
+                TryLoadSpecialFont(fontCollection, Path.Combine("asset", "font", "special", "ygo-link.ttf"), out linkFontFamily);
+                TryLoadSpecialFont(fontCollection, Path.Combine("asset", "font", "special", "ygo-password.ttf"), out passwordFontFamily);
                 return fontCollection;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"加载字体失败: {ex.Message}");
                 throw;
+            }
+        }
+        private static void TryLoadSpecialFont(FontCollection collection, string path, out FontFamily? family)
+        {
+            family = null;
+            try
+            {
+                if (File.Exists(path))
+                {
+                    family = collection.Add(path);
+                }
+                else
+                {
+                    Console.WriteLine($"警告: 未找到特殊字体文件: {path}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"警告: 加载特殊字体失败: {path}, 错误: {ex.Message}");
             }
         }
         public static void GenerateCardImages(string cardsJsonPath, string assetFigureDir, string outputFigureDir, bool debug = false, bool usePng = false)
@@ -185,7 +237,7 @@ namespace Yugioh
                             string pendulumMaskPath = Path.Combine(assetFigureDir, MasksDir, "card-mask-pendulum.png");
                             if (File.Exists(pendulumMaskPath))
                             {
-                                using (var pendulumMask = Image.Load(pendulumMaskPath))
+                                using (var pendulumMask = CloneFromCache(pendulumMaskPath))
                                 {
                                     int maskX = 70;
                                     int maskY = 354;
@@ -199,7 +251,7 @@ namespace Yugioh
                             string maskPath = Path.Combine(assetFigureDir, MasksDir, "card-mask.png");
                             if (File.Exists(maskPath))
                             {
-                                using (var cardMask = Image.Load(maskPath))
+                                using (var cardMask = CloneFromCache(maskPath))
                                 {
                                     int maskX = 125;
                                     int maskY = 322;
@@ -282,6 +334,7 @@ namespace Yugioh
                     Interlocked.Increment(ref failed);
                 }
             });
+            ClearImageCache();
             Console.WriteLine($"卡片生成完成！成功: {processed}, 失败: {failed}");
             int total = processed + failed;
             double successRate = 0.0;
@@ -434,7 +487,7 @@ namespace Yugioh
                     string atkDefImagePath = Path.Combine(assetFigureDir, IndicatorsDir, atkDefImageName);
                     if (File.Exists(atkDefImagePath))
                     {
-                        using (var atkDefImage = Image.Load(atkDefImagePath))
+                        using (var atkDefImage = CloneFromCache(atkDefImagePath))
                         {
                             int posX = 106;
                             int posY = 1854;
@@ -468,7 +521,7 @@ namespace Yugioh
                 string attributeImagePath = Path.Combine(assetFigureDir, AttributesDir, attributeImageName);
                 if (File.Exists(attributeImagePath))
                 {
-                    using (var attributeImage = Image.Load(attributeImagePath))
+                    using (var attributeImage = CloneFromCache(attributeImagePath))
                     {
                         int posX = 1170;
                         int posY = 95;
@@ -495,15 +548,7 @@ namespace Yugioh
                 {
                     return;
                 }
-                string pendulumFontPath = Path.Combine("asset", "font", "special", "ygo-atk-def.ttf");
-                if (!File.Exists(pendulumFontPath))
-                {
-                    Console.WriteLine($"错误: 未找到灵摆刻度字体文件: {pendulumFontPath}");
-                    return;
-                }
-                var fontCollection = new FontCollection();
-                var pendulumFontFamily = fontCollection.Add(pendulumFontPath);
-                var pendulumFont = pendulumFontFamily.CreateFont(90f, FontStyle.Bold);
+                var pendulumFont = (atkDefFontFamily ?? fontFamily).CreateFont(90f, FontStyle.Bold);
                 var color = Color.Black;
                 int leftScaleX = 122;
                 int leftScaleY = 1415;
@@ -543,7 +588,7 @@ namespace Yugioh
                     return;
                 }
                 int iconSpacing = 0;
-                using (var levelIcon = Image.Load(iconFilePath))
+                using (var levelIcon = CloneFromCache(iconFilePath))
                 {
                     int iconWidth = levelIcon.Width;
                     int posY = 250;
@@ -594,16 +639,7 @@ namespace Yugioh
         {
             try
             {
-                string atkDefFontPath = Path.Combine("asset", "font", "special", "ygo-atk-def.ttf");
-                string linkFontPath = Path.Combine("asset", "font", "special", "ygo-link.ttf");
-                if (!File.Exists(atkDefFontPath))
-                {
-                    Console.WriteLine($"错误: 未找到攻击力/守备力字体文件: {atkDefFontPath}");
-                    return;
-                }
-                var fontCollection = new FontCollection();
-                var atkDefFontFamily = fontCollection.Add(atkDefFontPath);
-                var atkDefFont = atkDefFontFamily.CreateFont(60f, FontStyle.Bold);
+                var atkDefFont = (atkDefFontFamily ?? fontFamily).CreateFont(60f, FontStyle.Bold);
                 var color = Color.Black;
                 string atkText = card.Attack ?? "?";
                 if (atkText == "-1")
@@ -625,17 +661,8 @@ namespace Yugioh
                     float linkX = 1230f;
                     float linkY = 1890f;
                     // if (card.FrameType?.ToLower().Contains("pendulum") == true) linkY += 12f; // 暂时没有灵摆Link
-                    if (File.Exists(linkFontPath))
-                    {
-                        var linkFontFamily = fontCollection.Add(linkFontPath);
-                        var linkFont = linkFontFamily.CreateFont(50f, FontStyle.Bold);
-                        image.Mutate(ctx => ctx.DrawText(linkText, linkFont, color, new PointF(linkX, linkY)));
-                    }
-                    else
-                    {
-                        Console.WriteLine($"警告: 未找到链接值字体文件: {linkFontPath},使用默认字体");
-                        image.Mutate(ctx => ctx.DrawText(linkText, atkDefFont, color, new PointF(linkX, linkY)));
-                    }
+                    var linkFont = (linkFontFamily ?? fontFamily).CreateFont(50f, FontStyle.Bold);
+                    image.Mutate(ctx => ctx.DrawText(linkText, linkFont, color, new PointF(linkX, linkY)));
                 }
                 else if (!string.IsNullOrEmpty(card.Defense))
                 {
@@ -665,15 +692,7 @@ namespace Yugioh
             try
             {
                 var frameType = card.FrameType?.ToLower() ?? "";
-                string fontPath = Path.Combine("asset", "font", "special", "ygo-password.ttf");
-                if (!File.Exists(fontPath))
-                {
-                    Console.WriteLine($"错误: 未找到ID字体文件: {fontPath}");
-                    return;
-                }
-                var fontCollection = new FontCollection();
-                var fontFamily = fontCollection.Add(fontPath);
-                var font = fontFamily.CreateFont(50f, FontStyle.Regular);
+                var font = (passwordFontFamily ?? fontFamily).CreateFont(50f, FontStyle.Regular);
                 var color = frameType.Contains("xyz") ? Color.White : Color.Black;
                 string idText = card.Id.ToString().PadLeft(8, '0');
                 float idX = 64f;
@@ -758,7 +777,7 @@ namespace Yugioh
                     string iconPath = Path.Combine("asset", "figure", IconsDir, iconName);
                     if (File.Exists(iconPath))
                     {
-                        using (var iconImage = Image.Load(iconPath))
+                        using (var iconImage = CloneFromCache(iconPath))
                         {
                             int iconX = 1160;
                             int iconY = 255;
@@ -825,7 +844,7 @@ namespace Yugioh
 
                     if (File.Exists(arrowFilePath))
                     {
-                        using (var arrowImage = Image.Load(arrowFilePath))
+                        using (var arrowImage = CloneFromCache(arrowFilePath))
                         {
                             if (arrowPositions.TryGetValue(direction, out Point position))
                             {
