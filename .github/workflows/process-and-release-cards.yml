@@ -162,7 +162,7 @@ jobs:
                       ./tarballs/cards_*.tar.xz
                       ./tarballs/forbidden_and_limited_list.tar.xz
                       ./tmp/cards.json
-                      ./log/failure.txt
+                      ./log/*.txt
                       ./checksums/*.sha256
                   draft: false
                   prerelease: false

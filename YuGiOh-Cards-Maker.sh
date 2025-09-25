@@ -79,6 +79,26 @@ cleanup_directories() {
     fi
     print_green "清理完成"
 }
+remove_empty_log_files() {
+    print_green "=== 检查并删除空的 log/*.txt 文件 ==="
+    if [ ! -d "log" ]; then
+        print_yellow "未找到 log 目录，跳过"
+        return
+    fi
+    shopt -s nullglob
+    empty_found=0
+    for lf in log/*.txt; do
+        if [ ! -s "$lf" ]; then
+            print_yellow "删除空日志文件: $lf"
+            rm -f -- "$lf"
+            empty_found=1
+        fi
+    done
+    shopt -u nullglob || true
+    if [ "$empty_found" -eq 0 ]; then
+        print_green "未发现空的 .txt 日志文件"
+    fi
+}
 run_project() {
     print_green "=== 运行 YuGiOh Cards Maker ==="
     print_yellow "正在运行卡片数据处理脚本..."
@@ -124,6 +144,7 @@ main() {
     install_dependencies
     create_directories
     run_project "$@"
+    remove_empty_log_files
     cleanup_directories
     print_green "===== YuGiOh Cards Maker 执行完成 ====="
 }
