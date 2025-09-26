@@ -24,21 +24,7 @@ jobs:
         run: |
           chmod +x ./*.sh
 
-      - name: Check if 'latest' tag exists
-        id: check_latest_tag
-        shell: bash
-        run: |
-          set -e
-          if git ls-remote --tags origin latest | grep -q "refs/tags/latest"; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Tag 'latest' exists."
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "Tag 'latest' does not exist; skipping deletion."
-          fi
-
       - name: Delete existing release
-        if: steps.check_latest_tag.outputs.exists == 'true'
         uses: dev-drprasad/delete-tag-and-release@v0.2.1
         with:
           tag_name: latest
@@ -46,7 +32,7 @@ jobs:
           repo: ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: false
+        continue-on-error: true
 
       - name: Run YuGiOh-Cards-Maker script
         run: |
@@ -123,7 +109,7 @@ jobs:
           table_rows=""
           if [ -s "$failure_file" ]; then
             total_fail=$(grep -E 'ID=[0-9]+' "$failure_file" | wc -l | awk '{print $1}')
-            table_header="失败卡片信息（共${total_fail}条）：\n\n| ID | 名称 | 原因 |\n|:--:|:--:|:--:|\n"
+            table_tip="失败卡片信息(共${total_fail}条):"
             while IFS= read -r line; do
               id=$(echo "$line" | sed -n 's/.*ID=\([0-9]\+\).*/\1/p')
               reason=$(echo "$line" | sed -n 's/.*原因=\(.*\)$/\1/p')
@@ -138,32 +124,32 @@ jobs:
           fi
 
           {
-            printf "自动生成的游戏王卡图、卡牌信息和禁限卡表(仅OCG、TCG、MD三方环境),共包含%s张JPG图片,每个压缩包包含最多10000张JPG图片(文件failure.txt中列出所有处理失败的卡片ID包括其原因)\n\n" "$total_jpg"
-            printf "禁限卡表统计为：\n\n"
-            printf "| 环境 | 禁止 | 限制 | 准限制 | 总计 |\n|:---:|:---:|:---:|:---:|:---:|\n"
-            printf "| OCG | %s | %s | %s | %s |\n" "$ocg_forbidden" "$ocg_limited" "$ocg_semi" "$ocg_total"
-            printf "| TCG | %s | %s | %s | %s |\n" "$tcg_forbidden" "$tcg_limited" "$tcg_semi" "$tcg_total"
-            printf "| MD  | %s | %s | %s | %s |\n\n" "$md_forbidden" "$md_limited" "$md_semi" "$md_total"
-            printf "%s\n\n" "所有压缩包文件均附带对应的SHA-256校验码文件(.sha256).可以使用以下命令验证文件完整性："
-            printf "%s\n" '```'
-            printf "%s\n" '# 验证SHA-256'
-            printf "%s\n" 'sha256sum -c {filename}.sha256'
-            printf "%s\n\n" '```'
-            printf "%s\n" "项目地址为[YuGiOh-Cards-Maker](https://github.com/Arshtyi/YuGiOh-Cards-Maker),各依赖与上游如下:"
-            printf "%s\n" "-   禁限信息"
-            printf "%s\n" "    -   数据来源:[Yugipedia](https://yugipedia.com/wiki/Yugipedia)"
-            printf "%s\n" "    -   上游:[YuGiOh-Forbidden-And-Limited-List](https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List)"
-            printf "%s\n" "-   卡片信息:[YGOPRODeck](https://ygoprodeck.com/)&[YGOCDB](https://ygocdb.com/)"
-            printf "%s\n" "-   衍生物信息:[YuGiOh-Tokens](https://github.com/Arshtyi/YuGiOh-Tokens)"
-            printf "%s\n" "-   种族:[Translations-Of-YuGiOh-Cards-Type](https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type)"
-            printf "%s\n\n" "-   字体:[霞鹜文楷](https://github.com/lxgw/LxgwWenKai)"
-            if [ -s "$failure_file" ]; then
-              printf "失败卡片明细(同样记载于`failure.txt`):\n\n"
-              printf "%s" "$table_header"
-              printf "%b" "$table_rows"
-            else
-              printf "无失败卡片处理\n"
-            fi
+              printf "自动生成的游戏王卡图、卡牌信息和禁限卡表(仅OCG、TCG、MD三方环境),共包含%s张JPG图片,每个压缩包包含最多10000张JPG图片(文件failure.txt中列出所有处理失败的卡片ID包括其原因)\n\n" "$total_jpg"
+              printf "禁限卡表统计为：\n\n"
+              printf "| 环境 | 禁止 | 限制 | 准限制 | 总计 |\n|:---:|:---:|:---:|:---:|:---:|\n"
+              printf "| OCG | %s | %s | %s | %s |\n" "$ocg_forbidden" "$ocg_limited" "$ocg_semi" "$ocg_total"
+              printf "| TCG | %s | %s | %s | %s |\n" "$tcg_forbidden" "$tcg_limited" "$tcg_semi" "$tcg_total"
+              printf "| MD  | %s | %s | %s | %s |\n\n" "$md_forbidden" "$md_limited" "$md_semi" "$md_total"
+              printf "%s\n\n" "所有压缩包文件均附带对应的SHA-256校验码文件(.sha256).可以使用以下命令验证文件完整性："
+              printf "%s\n" '```'
+              printf "%s\n" '# 验证SHA-256'
+              printf "%s\n" 'sha256sum -c {filename}.sha256'
+              printf "%s\n\n" '```'
+              printf "%s\n" "项目地址为[YuGiOh-Cards-Maker](https://github.com/Arshtyi/YuGiOh-Cards-Maker),各依赖与上游如下:"
+              printf "%s\n" "-   禁限信息"
+              printf "%s\n" "    -   数据来源:[Yugipedia](https://yugipedia.com/wiki/Yugipedia)"
+              printf "%s\n" "    -   上游:[YuGiOh-Forbidden-And-Limited-List](https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List)"
+              printf "%s\n" "-   卡片信息:[YGOPRODeck](https://ygoprodeck.com/)&[YGOCDB](https://ygocdb.com/)"
+              printf "%s\n" "-   衍生物信息:[YuGiOh-Tokens](https://github.com/Arshtyi/YuGiOh-Tokens)"
+              printf "%s\n" "-   种族:[Translations-Of-YuGiOh-Cards-Type](https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type)"
+              printf "%s\n\n" "-   字体:[霞鹜文楷](https://github.com/lxgw/LxgwWenKai)"
+              if [ -s "$failure_file" ]; then
+                  printf "%s\n" "$table_tip"
+                  printf "%s\n%s\n" "| ID | 名称 | 原因 |" "|:---:|:---:|:---:|"
+                  printf "%b" $table_rows
+              else
+                  printf "无失败卡片处理\n"
+              fi
           } > RELEASE_BODY.md
 
       - name: Create/Update release
