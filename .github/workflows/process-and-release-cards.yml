@@ -108,11 +108,11 @@ jobs:
           table_header=""
           table_rows=""
           if [ -s "$failure_file" ]; then
-            total_fail=$(grep -E 'ID=[0-9]+' "$failure_file" | wc -l | awk '{print $1}')
+            total_fail=$(grep -E 'ID = [0-9]+' "$failure_file" | wc -l | awk '{print $1}')
             table_tip="失败卡片信息(共${total_fail}条):"
             while IFS= read -r line; do
-              id=$(echo "$line" | sed -n 's/.*ID=\([0-9]\+\).*/\1/p')
-              reason=$(echo "$line" | sed -n 's/.*原因=\(.*\)$/\1/p')
+              id=$(echo "$line" | sed -n 's/.*ID = \([0-9]\+\).*/\1/p')
+              reason=$(echo "$line" | sed -n 's/.*原因 = \(.*\)$/\1/p')
               if [ -n "${id:-}" ]; then
                 name=$(jq -r --arg id "$id" '.[$id].name // empty' "$cards_file" 2>/dev/null || true)
                 [ -z "${name:-}" ] && name="(未找到名称)"
@@ -124,8 +124,8 @@ jobs:
           fi
 
           {
-              printf "自动生成的游戏王卡图、卡牌信息和禁限卡表(仅OCG、TCG、MD三方环境),共包含%s张JPG图片,每个压缩包包含最多10000张JPG图片(文件failure.txt中列出所有处理失败的卡片ID包括其原因)\n\n" "$total_jpg"
-              printf "禁限卡表统计为：\n\n"
+              printf "自动生成的游戏王简中卡图、卡牌信息和禁限卡表(OCG、TCG、MD三方环境),共包含%s张JPG图片,每个压缩包包含最多10000张JPG图片(文件failure.txt中列出所有处理失败的卡片ID包括其原因)\n\n" "$total_jpg"
+              printf "禁限卡表统计：\n\n"
               printf "| 环境 | 禁止 | 限制 | 准限制 | 总计 |\n|:---:|:---:|:---:|:---:|:---:|\n"
               printf "| OCG | %s | %s | %s | %s |\n" "$ocg_forbidden" "$ocg_limited" "$ocg_semi" "$ocg_total"
               printf "| TCG | %s | %s | %s | %s |\n" "$tcg_forbidden" "$tcg_limited" "$tcg_semi" "$tcg_total"

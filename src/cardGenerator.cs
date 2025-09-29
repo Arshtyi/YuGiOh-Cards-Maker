@@ -483,7 +483,7 @@ namespace Yugioh
                 bool isMonsterCard = card.CardType?.ToLower() == "monster";
                 if (isMonsterCard)
                 {
-                    string atkDefImageName = card.LinkRating.HasValue && card.LinkRating.Value > 0 ? "atk-link.png" : "atk-def.png";
+                    string atkDefImageName = card.LinkValue.HasValue && card.LinkValue.Value > 0 ? "atk-link.png" : "atk-def.png";
                     string atkDefImagePath = Path.Combine(assetFigureDir, IndicatorsDir, atkDefImageName);
                     if (File.Exists(atkDefImagePath))
                     {
@@ -624,7 +624,7 @@ namespace Yugioh
         {
             if (c == '「' || c == '」' || c == '『' || c == '』' || c == '"' || c == '"' || c == '\'' || c == '\'')
                 return false;
-            if (c == '·') return true;//霞鹜文楷中间隔号是窄字符
+            if (c == '·') return true; // 霞鹜文楷中间隔号是窄字符,但其他字符基本都不是
             // ASCII
             return c <= 127;
         }
@@ -633,7 +633,6 @@ namespace Yugioh
         {
             return c == '-' || c == '_' || c == '=' || c == '+' || c == '/';
         }
-
         // 攻击力和守备力/Link值
         private static void DrawAtkDefValues(Image image, Card card)
         {
@@ -654,13 +653,13 @@ namespace Yugioh
                 float atkY = 1859f;
                 if (card.FrameType?.ToLower().Contains("pendulum") == true) atkY += 12f;
                 image.Mutate(ctx => ctx.DrawText(atkText, atkDefFont, color, new PointF(atkX, atkY)));
-                bool isLinkMonster = card.LinkRating.HasValue && card.LinkRating.Value > 0;
-                if (isLinkMonster && card.LinkRating.HasValue)
+                bool isLinkMonster = card.LinkValue.HasValue && card.LinkValue.Value > 0;
+                if (isLinkMonster && card.LinkValue.HasValue)
                 {
-                    string linkText = card.LinkRating.Value.ToString();
+                    string linkText = card.LinkValue.Value.ToString();
                     float linkX = 1230f;
                     float linkY = 1890f;
-                    // if (card.FrameType?.ToLower().Contains("pendulum") == true) linkY += 12f; // 暂时没有灵摆Link
+                    // if (card.FrameType?.ToLower().Contains("pendulum") == true) linkY += 12f; // 暂时没有灵摆Link.真的会有吗？两种最具争议的召唤法的结合？
                     var linkFont = (linkFontFamily ?? fontFamily).CreateFont(50f, FontStyle.Bold);
                     image.Mutate(ctx => ctx.DrawText(linkText, linkFont, color, new PointF(linkX, linkY)));
                 }
@@ -1113,7 +1112,7 @@ namespace Yugioh
                 {
                     Directory.CreateDirectory(dir);
                 }
-                string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ID={id} 原因={reason}{Environment.NewLine}";
+                string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ID = {id} 原因 = {reason}{Environment.NewLine}";
                 lock (failureFileLock)
                 {
                     File.AppendAllText(failureFile, line);

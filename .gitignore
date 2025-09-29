@@ -3,12 +3,6 @@
 /obj
 /bin
 /log
-/token
-dev/unofficial_cards.txt
-dev/debug_results.txt
-/.conda
-*.vscode
+/.vscode
 /res
-__pycache__/
-dev/lines.txt
-/fig
+!dev/debug.txt

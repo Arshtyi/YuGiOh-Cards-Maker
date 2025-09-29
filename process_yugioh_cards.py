@@ -2,9 +2,7 @@ import json
 import sys
 import os
 from pathlib import Path
-
 def main():
-    # 获取项目根目录
     project_root = Path(os.getcwd()).absolute()
     tmp_dir = project_root / "tmp"
     typeline_conf_path = project_root / "res" / "typeline.conf"
@@ -227,9 +225,7 @@ def main():
                             try:
                                 with tempfile.NamedTemporaryFile(suffix='.jpg', dir=tmp_dir / "figure", delete=False) as temp_file:
                                     temp_path = temp_file.name
-                                # 下载图片
                                 urllib.request.urlretrieve(image_url, temp_path)
-                                # 检查图片是否有效
                                 try:
                                     subprocess.run(["magick", "identify", temp_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                                 except subprocess.CalledProcessError:
@@ -238,12 +234,9 @@ def main():
                                         os.remove(temp_path)
                                     error_count += 1
                                     continue
-                                # 转换为PNG
                                 try:
                                     subprocess.run(["magick", temp_path, final_png_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                                    # 检查转换后的PNG是否有效
                                     subprocess.run(["magick", "identify", final_png_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                                    # 删除临时文件
                                     if temp_path and os.path.exists(temp_path):
                                         os.remove(temp_path)
                                     download_count += 1
@@ -266,11 +259,8 @@ def main():
         if token_data:
             print("正在对token.json数据按name属性进行排序,相同name的按id排序...")
             sorted_token_data = {}
-            # 创建(card_id, card_info)的列表以便排序
             card_items = list(token_data.items())
-            # 先按name排序,如果name相同则按id（数值）排序
             card_items.sort(key=lambda item: (item[1].get("name", ""), int(item[0])))
-            # 重建排序后的字典
             sorted_token_data = {card_id: card_info for card_id, card_info in card_items}
             token_data = sorted_token_data
             print(f"排序完成,共排序了{len(token_data)}条记录")

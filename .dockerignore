@@ -7,10 +7,10 @@
 /cfg.example
 /figure
 /log
+/.vscode
 .dockerignore
 .editorconfig
 .gitignore
-.vscode
 Dockerfile
 README.md
 LICENSE
