@@ -43,11 +43,12 @@ verify_sha256() {
         return 0
     fi
 }
-mkdir -p res
+RES_DIR="res"
+mkdir -p "$RES_DIR"
 TYPELINE_URL="https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type/releases/download/latest/typeline.conf"
 TYPELINE_SHA_URL="https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type/releases/download/latest/typeline.conf.sha256"
-TYPELINE_PATH="res/typeline.conf"
-TYPELINE_SHA_PATH="tmp/typeline.conf.sha256"
+TYPELINE_PATH="$RES_DIR/typeline.conf"
+TYPELINE_SHA_PATH="$TMP_DIR/typeline.conf.sha256"
 echo "下载 typeline.conf 到 $TYPELINE_PATH"
 download_file "$TYPELINE_URL" "$TYPELINE_PATH"
 if [ $? -ne 0 ]; then
@@ -67,8 +68,8 @@ fi
 rm -f "$TYPELINE_SHA_PATH"
 TOKEN_URL="https://github.com/Arshtyi/YuGiOh-Tokens/releases/download/latest/token.json"
 TOKEN_SHA_URL="https://github.com/Arshtyi/YuGiOh-Tokens/releases/download/latest/token.json.sha256"
-TOKEN_PATH="res/token.json"
-TOKEN_SHA_PATH="tmp/token.json.sha256"
+TOKEN_PATH="$RES_DIR/token.json"
+TOKEN_SHA_PATH="$TMP_DIR/token.json.sha256"
 echo "下载 token.json 到 $TOKEN_PATH"
 download_file "$TOKEN_URL" "$TOKEN_PATH"
 if [ $? -ne 0 ]; then
@@ -88,9 +89,9 @@ fi
 rm -f "$TOKEN_SHA_PATH"
 LIMIT_URL="https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List/releases/download/latest/forbidden_and_limited_list.tar.xz"
 LIMIT_SHA_URL="https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List/releases/download/latest/forbidden_and_limited_list.tar.xz.sha256"
-LIMIT_TAR="tmp/forbidden_and_limited_list.tar.xz"
-LIMIT_SHA="tmp/forbidden_and_limited_list.tar.xz.sha256"
-LIMIT_DIR="res/limit"
+LIMIT_TAR="$TMP_DIR/forbidden_and_limited_list.tar.xz"
+LIMIT_SHA="$TMP_DIR/forbidden_and_limited_list.tar.xz.sha256"
+LIMIT_DIR="$RES_DIR/limit"
 mkdir -p "$LIMIT_DIR"
 echo "下载 forbidden_and_limited_list.tar.xz 到 $LIMIT_TAR"
 download_file "$LIMIT_URL" "$LIMIT_TAR"
@@ -117,10 +118,78 @@ fi
 rm -f "$LIMIT_TAR" "$LIMIT_SHA"
 echo "资源下载与校验完成"
 echo "正在下载ygocdb卡片数据..."
-wget -q https://ygocdb.com/api/v0/cards.zip -O "$TMP_DIR/ygocdb_cards.zip"
-unzip -q -o "$TMP_DIR/ygocdb_cards.zip" -d "$TMP_DIR"
+YGOCDB_ZIP_URL="https://ygocdb.com/api/v0/cards.zip"
+YGOCDB_MD5_URL="$YGOCDB_ZIP_URL.md5"
+YGOCDB_ZIP="$TMP_DIR/ygocdb_cards.zip"
+YGOCDB_MD5="$TMP_DIR/ygocdb_cards.zip.md5"
+YGOCDB_EXPECTED_MD5=""
+echo "下载 cards.zip 到 $YGOCDB_ZIP"
+_restore_proxy_env() {
+    for v in HTTP_PROXY HTTPS_PROXY http_proxy https_proxy ALL_PROXY all_proxy; do
+        old_val="_OLD_${v}"
+        old_set="_OLDSET_${v}"
+        if [ "${!old_set}" = "1" ]; then
+            export ${v}="${!old_val}"
+        else
+            unset ${v}
+        fi
+    done
+}
+for v in HTTP_PROXY HTTPS_PROXY http_proxy https_proxy ALL_PROXY all_proxy; do
+    if [ "${!v+set}" = "set" ]; then
+        eval "_OLDSET_${v}=1"
+        eval "_OLD_${v}='${!v}'"
+    else
+        eval "_OLDSET_${v}=0"
+        eval "_OLD_${v}=''"
+    fi
+    unset $v
+done
+trap '_restore_proxy_env' EXIT
+download_file "$YGOCDB_ZIP_URL" "$YGOCDB_ZIP"
+if [ $? -ne 0 ]; then
+    echo "错误: 下载 cards.zip 失败"
+    exit 1
+fi
+echo "尝试下载 cards.zip 的 MD5 校验文件: $YGOCDB_MD5_URL"
+download_file "$YGOCDB_MD5_URL" "$YGOCDB_MD5"
+if [ $? -ne 0 ]; then
+    echo "警告: 无法下载 cards.zip.md5, 将尝试使用本地工具计算并继续 (不建议)"
+else
+    expected_md5=$(awk '{print $1}' "$YGOCDB_MD5" | head -n1)
+    expected_md5=${expected_md5%\"}
+    expected_md5=${expected_md5#\"} # 百鸽的md5sum看起来是人工填写，已经反馈
+    if [ -z "$expected_md5" ]; then
+        echo "警告: 下载的 MD5 文件为空或格式不识别, 将跳过校验"
+    else
+        YGOCDB_EXPECTED_MD5="$expected_md5"
+        echo "已获取 cards.json 的 MD5: $YGOCDB_EXPECTED_MD5 (将在解压后验证)"
+    fi
+fi
+rm -f "$YGOCDB_MD5"
+unzip -q -o "$YGOCDB_ZIP" -d "$TMP_DIR"
+if [ -n "$YGOCDB_EXPECTED_MD5" ]; then
+    echo "验证 cards.json 的 MD5..."
+    if command -v md5sum &> /dev/null; then
+        actual_md5=$(md5sum "$TMP_DIR/cards.json" | awk '{print $1}')
+    elif command -v md5 &> /dev/null; then
+        actual_md5=$(md5 -q "$TMP_DIR/cards.json")
+    elif command -v openssl &> /dev/null; then
+        actual_md5=$(openssl dgst -md5 "$TMP_DIR/cards.json" | awk '{print $2}')
+    else
+        echo "错误: 系统上未找到 md5sum/md5/openssl, 无法验证 cards.json"
+        rm -f "$YGOCDB_ZIP"
+        exit 1
+    fi
+    if [ "$YGOCDB_EXPECTED_MD5" != "$actual_md5" ]; then
+        echo "错误: cards.json MD5 校验失败 (期望: $YGOCDB_EXPECTED_MD5, 实际: $actual_md5)"
+        rm -f "$YGOCDB_ZIP" "$TMP_DIR/cards.json"
+        exit 1
+    fi
+    echo "cards.json MD5 校验通过"
+fi
 jq . "$TMP_DIR/cards.json" > "$TMP_DIR/ygocdb_cards.json"
-rm "$TMP_DIR/cards.json" "$TMP_DIR/ygocdb_cards.zip"
+rm "$TMP_DIR/cards.json" "$YGOCDB_ZIP"
 echo "正在下载ygoprodeck卡片数据..."
 curl -s https://db.ygoprodeck.com/api/v7/cardinfo.php | jq . > "$TMP_DIR/ygoprodeck_cardinfo.json"
 mkdir -p "$TMP_DIR/figure"

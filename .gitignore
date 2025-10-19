@@ -5,4 +5,4 @@
 /log
 /.vscode
 /res
-!dev/debug.txt
+/dev
