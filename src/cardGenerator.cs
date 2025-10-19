@@ -17,11 +17,11 @@ namespace Yugioh
     public static class CardGenerator
     {
         private static readonly object failureFileLock = new object();
-        private static readonly RectangleF CardNameArea = new RectangleF(89.86f, 96.10f, 1113.00f - 89.86f, 224.71f - 96.10f);
+        private static readonly RectangleF CardNameArea = new RectangleF(89.86f, 96.10f, 1120.00f - 89.86f, 224.71f - 96.10f);
         private static readonly RectangleF PendulumDescriptionArea = new RectangleF(220f, 1300f, 1180f - 220f, 1500f - 1300f);
-        private static readonly RectangleF CardDescriptionArea = new RectangleF(110f, 1533f, 1283f - 110f, 1897f - 1533f);
+        private static readonly RectangleF CardDescriptionArea = new RectangleF(110f, 1533f, 1287f - 110f, 1897f - 1533f);
         private static readonly string FontPath = Path.Combine("asset", "font", "sc", "LXGWWenKai-Regular.ttf");
-        private const float PendulumIdYOffset = 1f;
+        private const float PendulumIdYOffset = 4f;
         // 资源目录
         private static readonly string FramesDir = "cards";
         private static readonly string MasksDir = "masks";
@@ -39,7 +39,6 @@ namespace Yugioh
         private static FontFamily? atkDefFontFamily;
         private static FontFamily? linkFontFamily;
         private static FontFamily? passwordFontFamily;
-
         private static Image CloneFromCache(string filePath)
         {
             if (!File.Exists(filePath))
@@ -523,8 +522,12 @@ namespace Yugioh
                 {
                     using (var attributeImage = CloneFromCache(attributeImagePath))
                     {
-                        int posX = 1170;
-                        int posY = 95;
+                        const float scale = 1.15f;
+                        int scaledWidth = (int)Math.Round(attributeImage.Width * scale);
+                        int scaledHeight = (int)Math.Round(attributeImage.Height * scale);
+                        attributeImage.Mutate(ctx => ctx.Resize(scaledWidth, scaledHeight));
+                        int posX = 1152;
+                        int posY = 86;
                         image.Mutate(ctx => ctx.DrawImage(attributeImage, new Point(posX, posY), 1f));
                     }
                 }
@@ -590,12 +593,20 @@ namespace Yugioh
                 int iconSpacing = 0;
                 using (var levelIcon = CloneFromCache(iconFilePath))
                 {
+                    const float iconScale = 1.08f;
+                    if (iconScale != 1f)
+                    {
+                        int scaledWidth = Math.Max(1, (int)MathF.Round(levelIcon.Width * iconScale));
+                        int scaledHeight = Math.Max(1, (int)MathF.Round(levelIcon.Height * iconScale));
+                        levelIcon.Mutate(ctx => ctx.Resize(scaledWidth, scaledHeight));
+                    }
                     int iconWidth = levelIcon.Width;
-                    int posY = 250;
+                    int posY = 245;
                     if (isXyz)
                     {
                         // 阶级从左边开始
-                        int leftStartX = 140;
+                        // 特殊处理13阶
+                        int leftStartX = card.Level.Value == 13 ? 80 : 123;
                         for (int i = 0; i < card.Level.Value; i++)
                         {
                             int posX = leftStartX + (i * (iconWidth + iconSpacing));
@@ -605,7 +616,8 @@ namespace Yugioh
                     else
                     {
                         // 星级从右边开始
-                        int rightTopX = 1279;
+                        // 特殊处理13星，尽管截止本更新时游戏王还没有卡面上的13星怪兽
+                        int rightTopX = card.Level.Value == 13 ? 1328 : 1275;
                         for (int i = 0; i < card.Level.Value; i++)
                         {
                             int posX = rightTopX - (i * (iconWidth + iconSpacing));
@@ -691,11 +703,11 @@ namespace Yugioh
             try
             {
                 var frameType = card.FrameType?.ToLower() ?? "";
-                var font = (passwordFontFamily ?? fontFamily).CreateFont(50f, FontStyle.Regular);
+                var font = (passwordFontFamily ?? fontFamily).CreateFont(40f, FontStyle.Regular);
                 var color = frameType.Contains("xyz") ? Color.White : Color.Black;
                 string idText = card.Id.ToString().PadLeft(8, '0');
-                float idX = 64f;
-                float idY = 1934f;
+                float idX = 66f;
+                float idY = 1935f;
                 if (frameType.Contains("pendulum"))
                 {
                     idY += PendulumIdYOffset;
@@ -718,9 +730,9 @@ namespace Yugioh
                     using (var cardImage = Image.Load(cardImagePath))
                     {
                         var frameType = card.FrameType?.ToLower() ?? "";
-                        int posX = frameType.Contains("pendulum") ? 94 : 171;
+                        int posX = frameType.Contains("pendulum") ? 97 : 179;
                         int posY = 376;
-                        float scale = 1.7f;
+                        float scale = 1.69f;
                         var resizedImage = cardImage.Clone(ctx => ctx.Resize((int)(cardImage.Width * scale), (int)(cardImage.Height * scale)));
                         image.Mutate(ctx => ctx.DrawImage(resizedImage, new Point(posX, posY), 1f));
                     }
@@ -758,29 +770,29 @@ namespace Yugioh
                 }
                 var fontCollection = new FontCollection();
                 var fontFamily = fontCollection.Add(fontPath);
-                var font = fontFamily.CreateFont(100f, FontStyle.Regular);
+                var font = fontFamily.CreateFont(80f, FontStyle.Regular);
                 var color = Color.Black;
-                float posY = 250f;
-                float startX = hasIcon ? 750f : 840f;
-                string prefixText = isSpell ? "【魔法卡" : "【陷阱卡";
-                image.Mutate(ctx => ctx.DrawText(prefixText, font, color, new PointF(startX, posY)));
-                var textOptions = new TextOptions(font)
-                {
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
-                };
-                FontRectangle prefixSize = TextMeasurer.MeasureSize(prefixText, textOptions);
+                float posY = 256f;
                 if (hasIcon)
                 {
+                    float startX = hasIcon ? 790f : 880f;
+                    string prefixText = isSpell ? "【魔法卡" : "【陷阱卡";
+                    image.Mutate(ctx => ctx.DrawText(prefixText, font, color, new PointF(startX, posY)));
+                    var textOptions = new TextOptions(font)
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        VerticalAlignment = VerticalAlignment.Top
+                    };
+                    FontRectangle prefixSize = TextMeasurer.MeasureSize(prefixText, textOptions);
                     string iconName = $"icon-{race}.png";
                     string iconPath = Path.Combine("asset", "figure", IconsDir, iconName);
                     if (File.Exists(iconPath))
                     {
                         using (var iconImage = CloneFromCache(iconPath))
                         {
-                            int iconX = 1160;
-                            int iconY = 255;
-                            float scale = 1.1f;
+                            int iconX = 1120;
+                            int iconY = 250;
+                            float scale = 1.2f;
                             int newWidth = (int)(iconImage.Width * scale);
                             int newHeight = (int)(iconImage.Height * scale);
                             var resizedIcon = iconImage.Clone(ctx => ctx.Resize(newWidth, newHeight));
@@ -799,7 +811,7 @@ namespace Yugioh
                 else
                 {
                     string fullText = isSpell ? "【魔法卡】" : "【陷阱卡】";
-                    image.Mutate(ctx => ctx.DrawText(fullText, font, color, new PointF(840f, posY)));
+                    image.Mutate(ctx => ctx.DrawText(fullText, font, color, new PointF(880f, posY)));
                 }
             }
             catch (Exception ex)
@@ -880,7 +892,7 @@ namespace Yugioh
                 var color = Color.Black;
                 string fullText = card.PendulumDescription;
                 string[] logicalLines = fullText.Split('\n');
-                float baseMaxEffectiveLength = 24f; // 对应字号40
+                float baseMaxEffectiveLength = 24f;
                 float posX = PendulumDescriptionArea.X;
                 float areaTopY = PendulumDescriptionArea.Y;
                 float maxHeight = PendulumDescriptionArea.Height; // 高度限制
@@ -947,8 +959,7 @@ namespace Yugioh
                 {
                     return;
                 }
-                // 初始准备
-                float fontSize = 40f; // 起始字号
+                float fontSize = 40f;
                 var color = Color.Black;
                 string descriptionText = card.Description;
                 bool isMonsterCard = card.CardType?.ToLower() == "monster";
@@ -977,8 +988,7 @@ namespace Yugioh
                 {
                     maxHeight = 1845f - baseAreaY;
                 }
-                // 参数
-                float baseMaxEffectiveLength = 29f; // 对应字号40
+                float baseMaxEffectiveLength = 29.4f; // 对应字号40
                 int iterations = 0;
                 int maxIterations = 80;
                 int finalTotalLines = 0;
@@ -994,7 +1004,6 @@ namespace Yugioh
                     else if (fontSize <= 35f) lineHeight = fontSize * 1.1f;
                     else lineHeight = fontSize * 1.2f;
                     float currentMaxEffectiveLength = baseMaxEffectiveLength * (40f / fontSize);
-                    // 重新分行
                     finalLines.Clear();
                     string[] logicalLines = descriptionText.Split('\n');
                     foreach (var l in logicalLines)
@@ -1031,7 +1040,6 @@ namespace Yugioh
                     fontSize -= 1f;
                     iterations++;
                 }
-                // 绘制
                 var descFont = fontFamily.CreateFont(finalFontSize, FontStyle.Regular);
                 // // 迭代结束后打印每一行的有效长度及该行的上限（基于最终字号），便于调试
                 // try
@@ -1068,7 +1076,6 @@ namespace Yugioh
                 Console.WriteLine($"绘制卡牌效果描述失败: {ex.Message}");
             }
         }
-        // 分割长文本行
         private static List<string> WrapLineByEffectiveLength(string line, float maxEffectiveLength)
         {
             List<string> result = new List<string>();
@@ -1100,7 +1107,6 @@ namespace Yugioh
             }
             return result;
         }
-        // 将失败记录写入 log/failure.txt（包含时间、ID、原因），线程安全
         private static void WriteFailureRecord(object idObj, string reason)
         {
             try
