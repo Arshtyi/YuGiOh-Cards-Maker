@@ -95,6 +95,7 @@
 -   `src/`: C#程序主要代码目录
     -   `card.cs`:卡片类定义
     -   `cardGenerator.cs`:卡片生成
+    -   `stringNumericConverter.cs`:类型转化
 -   `tmp/`: 临时目录
     -   `cards.json`: 卡片数据
     -   `figure/`: 临时图片目录

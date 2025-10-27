@@ -142,7 +142,7 @@ jobs:
               printf "%s\n" "-   卡片信息:[YGOPRODeck](https://ygoprodeck.com/)&[YGOCDB](https://ygocdb.com/)"
               printf "%s\n" "-   衍生物信息:[Arshtyi/YuGiOh-Tokens](https://github.com/Arshtyi/YuGiOh-Tokens)"
               printf "%s\n" "-   种族:[Arshtyi/Translations-Of-YuGiOh-Cards-Type](https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type)"
-              printf "%s\n" "-   卡模:[Arshtyi/Card-Templates-Of-YuGiOh](https://github.com/Arshtyi/Card-Templates-Of-YuGiOh)"
+              printf "%s\n" "-   卡模:来源于[Arshtyi/Card-Templates-Of-YuGiOh](https://github.com/Arshtyi/Card-Templates-Of-YuGiOh)"
               printf "%s\n" "-   字体"
               printf "%s\n" "    -   包括华康楷体在内的诸多字体（大部分已找不到源头）"
               printf "%s\n\n" "    -   [霞鹜文楷](https://github.com/lxgw/LxgwWenKai)"
