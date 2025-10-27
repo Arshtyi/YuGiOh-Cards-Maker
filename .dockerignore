@@ -8,6 +8,7 @@
 /figure
 /log
 /.vscode
+/asset
 .dockerignore
 .editorconfig
 .gitignore

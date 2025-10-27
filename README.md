@@ -18,7 +18,7 @@
 >
 > 同时需要说明的是，许多参数的值与后续调整我并没有更多的测试，也许他们并不见得合适，并且不可能像 PS 一样精致
 >
-> 关于中心卡图，其实我考虑过进行超分，但是因为需要协调工作流，我放弃了
+> 关于中心卡图，其实我考虑过进行超分，但是因为需要协调工作流，我暂时放弃了
 >
 > 如果你有更进一步的想法，欢迎联系我，方式见[Contact Me](#contact-me)
 >
@@ -32,21 +32,23 @@
 
 ## 项目上游
 
-1. 衍生物信息来源于[YuGiOh-Tokens](https://github.com/Arshtyi/YuGiOh-Tokens)仓库
-2. 种族翻译信息来源于[Translations-Of-YuGiOh-Cards-Type](https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type)仓库
-3. 禁限卡表信息来源于[YuGiOh-Forbidden-And-Limited-List](https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List)仓库
-4. 依赖与数据源头见[THX](#thx)
+1. 衍生物信息来源于[Arshtyi/YuGiOh-Tokens](https://github.com/Arshtyi/YuGiOh-Tokens)仓库
+2. 种族翻译信息来源于[Arshtyi/Translations-Of-YuGiOh-Cards-Type](https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type)仓库
+3. 禁限卡表信息来源于[Arshtyi/YuGiOh-Forbidden-And-Limited-List](https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List)仓库
+4. 卡模素材来源于[Arshtyi/Card-Templates-Of-YuGiOh](https://github.com/Arshtyi/Card-Templates-Of-YuGiOh)
+5. 依赖与数据源头见[THX](#thx)
 
 ## 项目说明
 
 1. **项目不是为了 DIY**,作者也不会主动进行 DIY 适配
-2. 不会主动做 windows 适配,但是已经有了 Docker 支持
-3. 不会支持其他卡面语言,卡面元素不会增加(包括但不限于卡包、水印、角标)
-4. 不会有高速魔法、黑暗同调、技能卡、卡背、RD 等,但是已经支持了 Token
-5. 不会支持异画(~~懒得写适配~~，这牵涉到上下游的数据格式兼容与处理问题)和非正式卡(如观赏卡)等
-6. 所有卡片的描述采用 YGOPRO 风格
-7. _禁限卡表支持且仅支持 OCG/TCG/MD_
-8. 由于 [YGOProDeck](https://ygoprodeck.com/)与[YGOCDB](https://ygocdb.com/)两个数据上游的更新速度不同，本项目的卡图生成几乎不可能做到 100%成功，这是非常正常的(也就是`log/failure.txt`文件几乎一定不为空，具体将在 [release](https://github.com/Arshtyi/YuGiOh-Cards-Maker/releases/tag/latest) 页体现)
+2. 本项目仅专注于 OCG、TCG 实卡和 MD 已上线的卡牌，未 O 化卡暂时不考虑（比如链接魔法）
+3. 不会主动做 windows 适配,但是已经有了 Docker 支持
+4. 不会支持其他卡面语言,卡面元素不会增加(包括但不限于卡包、水印、角标)
+5. 不会有高速魔法、黑暗同调、技能卡、卡背、RD 等,但是已经支持了 Token
+6. 不会支持异画(~~懒得写适配~~，这牵涉到上下游的数据格式兼容与处理问题)和非正式卡(如观赏卡)等
+7. 所有卡片的描述采用 YGOPRO 风格
+8. _禁限卡表支持且仅支持 OCG/TCG/MD_
+9. 由于 [YGOProDeck](https://ygoprodeck.com/)与[YGOCDB](https://ygocdb.com/)两个数据上游的更新速度不同，本项目的卡图生成几乎不可能做到 100%成功，这是非常正常的(也就是`log/failure.txt`文件几乎一定不为空，具体将在 [release](https://github.com/Arshtyi/YuGiOh-Cards-Maker/releases/tag/latest) 页体现)
 
 ## 关于 Token
 
@@ -54,14 +56,18 @@
 -   目前 token 的 id 采用公认的召唤衍生物的卡的 id+1 的方式,具体信息见 `cfg.example/`和 `res/`
 -   因为 token 的信息是**手动维护**,所以可能存在错误
 
+## 关于 ID
+
+因为本项目没有引入卡片编号的要素，所以使用了卡片密码作为 ID 以区别卡片
+
 ## 项目结构
 
--   `asset/`: 存放资源文件
+-   `asset/`: 存放卡模资源,已被切割为上游提供支撑
     -   `figure/`: 卡片框架、图标等图片资源
     -   `font/`: 字体文件
         -   `sc/`: 简体中文字体
         -   `special/`: 特殊字体(如攻击力/守备力/Link 值/ID 字体)
--   `res/`:资源文件,已经被切割为上游提供支撑
+-   `res/`:存放数据资源,已被切割为上游提供支撑
     -   `typeline.conf`: 怪兽卡的 typeline 翻译
     -   `token.json`:衍生物信息
     -   `limit/`:禁限卡表
@@ -89,13 +95,12 @@
 -   `src/`: C#程序主要代码目录
     -   `card.cs`:卡片类定义
     -   `cardGenerator.cs`:卡片生成
-    -   `stringNumericConverter.cs`:字符转化
 -   `tmp/`: 临时目录
     -   `cards.json`: 卡片数据
     -   `figure/`: 临时图片目录
--   `process_yugioh_cards.py`:负责整合数据得到 `tmp/cards.json`
--   `Program.cs`:生图程序入口
--   `YuGiOh-Cards-Maker.csproj`:C#环境依赖
+-   `process_yugioh_cards.py`:负责整合并处理数据得到 `tmp/cards.json`
+-   `Program.cs`:生成程序入口
+-   `YuGiOh-Cards-Maker.csproj`:C#依赖
 -   `YuGiOh-Cards-Maker.sh`:一键脚本
 -   `Dockerfile`:Docker 构建文件
 -   `entrypoint.sh`:命令行参数传递脚本
@@ -206,7 +211,7 @@ docker cp <CONTAINER_ID>:/app/figure ./figure
 
 ## Contact me
 
--   repo:[YuGiOh-Cards-Maker](https://github.com/Arshtyi/YuGiOh-Cards-Maker)
+-   repo:[Arshtyi/YuGiOh-Cards-Maker](https://github.com/Arshtyi/YuGiOh-Cards-Maker)
 -   E-mail:arshtyi@foxmail.com
 -   QQ:64006128
 
@@ -217,10 +222,17 @@ docker cp <CONTAINER_ID>:/app/figure ./figure
 -   ChatGPT
 -   Claude
 
+### 卡模
+
+-   感谢白羽幸鳥制作的卡模
+-   关于卡模的更多信息请访问[Arshtyi/Card-Templates-Of-YuGiOh](https://github.com/Arshtyi/Card-Templates-Of-YuGiOh)
+
 ### Font
 
+-   包括华康楷体在内的诸多字体（大部分已找不到源头）
 -   [霞鹜文楷](https://github.com/lxgw/LxgwWenKai)
--   ygo-atk-def、ygo-link、ygo-password(抱歉，此三者我并没有找到作者信息)
+
+关于字体的更多信息请访问[Arshtyi/Card-Templates-Of-YuGiOh](https://github.com/Arshtyi/Card-Templates-Of-YuGiOh)
 
 ### API
 
@@ -241,6 +253,8 @@ docker cp <CONTAINER_ID>:/app/figure ./figure
 感谢赤子奈落开发的 MDPro3,不管是在寻找制图思路还是在维护衍生物信息的过程中，我都参考了此项目的一些思路和结果
 
 同时也要感谢 YGOPro 和 MyCard 历年来所有的开发者、维护者
+
+然后要感谢 YGODIY 这一过程中所有贡献者，正是前人的工作让我能够更顺利地开发
 
 最后要感谢 CNYGO 的所有贡献者
 

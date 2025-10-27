@@ -17,14 +17,11 @@ namespace Yugioh
     public static class CardGenerator
     {
         private static readonly object failureFileLock = new object();
-        private static readonly RectangleF CardNameArea = new RectangleF(89.86f, 96.10f, 1120.00f - 89.86f, 224.71f - 96.10f);
-        private static readonly RectangleF PendulumDescriptionArea = new RectangleF(220f, 1300f, 1180f - 220f, 1500f - 1300f);
+        private static readonly RectangleF CardNameArea = new RectangleF(70f, 96.10f, 1120.00f - 70f, 224.71f - 96.10f);
+        private static readonly RectangleF PendulumDescriptionArea = new RectangleF(216f, 1286f, 1172f - 216f, 1498f - 1286f);
         private static readonly RectangleF CardDescriptionArea = new RectangleF(110f, 1533f, 1287f - 110f, 1897f - 1533f);
-        private static readonly string FontPath = Path.Combine("asset", "font", "sc", "LXGWWenKai-Regular.ttf");
-        private const float PendulumIdYOffset = 4f;
-        // 资源目录
+        private static readonly string FontPath = Path.Combine("asset", "font", "sc", "Yu-Gi-Oh! DFKaiW5-A（简体中文）.ttf");
         private static readonly string FramesDir = "cards";
-        private static readonly string MasksDir = "masks";
         private static readonly string AttributesDir = "attributes";
         private static readonly string IndicatorsDir = "indicators";
         private static readonly string IconsDir = "icons";
@@ -76,9 +73,9 @@ namespace Yugioh
                 titleBlackColor = Color.Black;
                 titleWhiteColor = Color.White;
                 titleShadowColor = Color.FromRgba(0, 0, 0, 80);
-                TryLoadSpecialFont(fontCollection, Path.Combine("asset", "font", "special", "ygo-atk-def.ttf"), out atkDefFontFamily);
-                TryLoadSpecialFont(fontCollection, Path.Combine("asset", "font", "special", "ygo-link.ttf"), out linkFontFamily);
-                TryLoadSpecialFont(fontCollection, Path.Combine("asset", "font", "special", "ygo-password.ttf"), out passwordFontFamily);
+                TryLoadSpecialFont(fontCollection, Path.Combine("asset", "font", "special", "Yu-Gi-Oh! Matrix（攻守刻度）.ttf"), out atkDefFontFamily);
+                TryLoadSpecialFont(fontCollection, Path.Combine("asset", "font", "special", "Yu-Gi-Oh! RoGSanSrfStd-Bd（连接数）.ttf"), out linkFontFamily);
+                TryLoadSpecialFont(fontCollection, Path.Combine("asset", "font", "special", "Yu-Gi-Oh! ITC Stone Serif M（编号卡密）.ttf"), out passwordFontFamily);
                 return fontCollection;
             }
             catch (Exception ex)
@@ -217,104 +214,76 @@ namespace Yugioh
                     // 根据参数决定输出文件扩展名
                     string fileExtension = usePng ? ".png" : ".jpg";
                     var outPath = Path.Combine(outputFigureDir, $"{card.Id}{fileExtension}");
-                    using (var image = Image.Load(frameFile))
+                    using (var frameImage = Image.Load(frameFile))
                     {
-                        // 属性
-                        DrawAttributeImage(image, card, assetFigureDir);
-                        // 卡图 - 如果没有卡图则跳过该卡并记录到 log/failure.txt
-                        bool hasArtwork = DrawCardArtwork(image, card, "tmp/figure");
-                        if (!hasArtwork)
+                        using (var image = new Image<Rgba32>(frameImage.Width, frameImage.Height))
                         {
-                            string reason = "未找到卡图或加载卡图失败";
-                            WriteFailureRecord(card.Id, reason);
-                            Interlocked.Increment(ref failed);
-                            return;
-                        }
-                        // 灵摆卡->灵摆框
-                        if (frameType.Contains("pendulum"))
-                        {
-                            string pendulumMaskPath = Path.Combine(assetFigureDir, MasksDir, "card-mask-pendulum.png");
-                            if (File.Exists(pendulumMaskPath))
+                            // 卡图
+                            bool hasArtwork = DrawCardArtwork(image, card, "tmp/figure");
+                            if (!hasArtwork)
                             {
-                                using (var pendulumMask = CloneFromCache(pendulumMaskPath))
-                                {
-                                    int maskX = 70;
-                                    int maskY = 354;
-                                    image.Mutate(ctx => ctx.DrawImage(pendulumMask, new Point(maskX, maskY), 1f));
-                                }
+                                string reason = "未找到卡图或加载卡图失败";
+                                WriteFailureRecord(card.Id, reason);
+                                Interlocked.Increment(ref failed);
+                                return;
                             }
-                        }
-                        // 非灵摆卡->普通框
-                        else
-                        {
-                            string maskPath = Path.Combine(assetFigureDir, MasksDir, "card-mask.png");
-                            if (File.Exists(maskPath))
+                            image.Mutate(ctx => ctx.DrawImage(frameImage, new Point(0, 0), 1f));
+                            // 属性
+                            DrawAttributeImage(image, card, assetFigureDir);
+                            // 攻守条
+                            DrawAtkDefBar(image, card, assetFigureDir);
+                            // 灵摆刻度
+                            DrawPendulumScale(image, card);
+                            // 星级/阶级图标
+                            DrawLevelOrRank(image, card, assetFigureDir);
+                            // Link箭头
+                            DrawLinkArrows(image, card, assetFigureDir);
+                            bool isXyzMonster = frameType.Contains("xyz");
+                            bool isSpellOrTrap = card.CardType?.ToLower() == "spell" || card.CardType?.ToLower() == "trap";
+                            bool isSpecialCard = isXyzMonster || isSpellOrTrap;
+                            // 卡名
+                            DrawCardName(image, card.Name, isSpecialCard);
+                            // ID
+                            DrawCardID(image, card);
+                            // 魔法卡/陷阱卡类型文字
+                            DrawCardTypeText(image, card);
+                            // 灵摆效果
+                            DrawPendulumDescription(image, card);
+                            // 卡牌效果
+                            DrawCardDescription(image, card);
+                            // 根据参数保存
+                            if (usePng)
                             {
-                                using (var cardMask = CloneFromCache(maskPath))
+                                // 保存为无损PNG
+                                var pngEncoder = new PngEncoder
                                 {
-                                    int maskX = 125;
-                                    int maskY = 322;
-                                    image.Mutate(ctx => ctx.DrawImage(cardMask, new Point(maskX, maskY), 1f));
-                                }
+                                    CompressionLevel = PngCompressionLevel.BestCompression
+                                };
+                                image.Save(outPath, pngEncoder);
                             }
                             else
                             {
-                                Console.WriteLine($"警告: 未找到卡框文件: {maskPath}");
+                                // 保存为JPG（质量50%）
+                                var jpegEncoder = new JpegEncoder
+                                {
+                                    Quality = 50
+                                };
+                                image.Save(outPath, jpegEncoder);
                             }
-                        }
-                        // 攻守条
-                        DrawAtkDefBar(image, card, assetFigureDir);
-                        // 灵摆刻度
-                        DrawPendulumScale(image, card);
-                        // 星级/阶级图标
-                        DrawLevelOrRank(image, card, assetFigureDir);
-                        // Link箭头
-                        DrawLinkArrows(image, card, assetFigureDir);
-                        bool isXyzMonster = frameType.Contains("xyz");
-                        bool isSpellOrTrap = card.CardType?.ToLower() == "spell" || card.CardType?.ToLower() == "trap";
-                        bool isSpecialCard = isXyzMonster || isSpellOrTrap;
-                        // 卡名
-                        DrawCardName(image, card.Name, isSpecialCard);
-                        // ID
-                        DrawCardID(image, card);
-                        // 魔法卡/陷阱卡类型文字
-                        DrawCardTypeText(image, card);
-                        // 灵摆效果
-                        DrawPendulumDescription(image, card);
-                        // 卡牌效果
-                        DrawCardDescription(image, card);
-                        // 根据参数保存
-                        if (usePng)
-                        {
-                            // 保存为无损PNG
-                            var pngEncoder = new PngEncoder
+                            // 在非debug模式下删除临时目录中的原始PNG
+                            if (!debug)
                             {
-                                CompressionLevel = PngCompressionLevel.BestCompression
-                            };
-                            image.Save(outPath, pngEncoder);
-                        }
-                        else
-                        {
-                            // 保存为JPG（质量50%）
-                            var jpegEncoder = new JpegEncoder
-                            {
-                                Quality = 50
-                            };
-                            image.Save(outPath, jpegEncoder);
-                        }
-                        // 在非debug模式下删除临时目录中的原始PNG
-                        if (!debug)
-                        {
-                            string tmpPngPath = Path.Combine("tmp/figure", $"{card.Id}.png");
-                            if (File.Exists(tmpPngPath))
-                            {
-                                try
+                                string tmpPngPath = Path.Combine("tmp/figure", $"{card.Id}.png");
+                                if (File.Exists(tmpPngPath))
                                 {
-                                    File.Delete(tmpPngPath);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine($"警告: 无法删除临时PNG: {tmpPngPath}, 错误: {ex.Message}");
+                                    try
+                                    {
+                                        File.Delete(tmpPngPath);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine($"警告: 无法删除临时PNG: {tmpPngPath}, 错误: {ex.Message}");
+                                    }
                                 }
                             }
                         }
@@ -360,7 +329,7 @@ namespace Yugioh
                 {
                     titleFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
                     // 先使用基于字符权重的估算快速判断是否可能超出
-                    float baseMaxEffectiveLength = 24f;
+                    float baseMaxEffectiveLength = 25f;
                     float currentMaxEffectiveLength = baseMaxEffectiveLength * (95f / fontSize);
                     float effLen = ComputeEffectiveCharLength(cardName);
                     if (effLen <= currentMaxEffectiveLength)
@@ -368,7 +337,7 @@ namespace Yugioh
                         measuredWidth = MeasureTextPixelWidth(cardName, titleFont, textColor);
                         if (measuredWidth <= areaWidth || fontSize <= 30f) break;
                     }
-                    fontSize -= 1f;
+                    fontSize -= 0.5f;
                     iterations++;
                     if (iterations > 200)
                     {
@@ -397,26 +366,30 @@ namespace Yugioh
         // 返回单个字符的“有效长度”权重（供统一使用）
         private static float GetCharEffectiveLength(char c)
         {
-            // 分隔符（如中点、连字符等）优先处理
-            if (IsSeparatorChar(c))
-            {
-                return 0.7f;
-            }
             // 大写英文字母计为 0.7
             if (c >= 'A' && c <= 'Z')
             {
-                return 0.7f;
+                return 0.6f;
             }
             // 小写英文字母计为 0.5
             if (c >= 'a' && c <= 'z')
             {
                 return 0.5f;
             }
-            if (IsAsciiNarrowChar(c))
+            if (c >= '0' && c <= '9')
             {
-                // 其它 ASCII 窄字符（数字、符号等）计为0.5
                 return 0.5f;
             }
+            if (c == '.' || c == '"' || c == '\'' || c == '，' || c == ' ')
+            {
+                return 0.5f;
+            }
+            if (c == '：') { return 0.6f; }
+            if (c == '“' || c == '”' || c == '『' || c == '』' || c == '【' || c == '】' || c == '《' || c == '》' || c == '「' || c == '」' || c == '·')
+            {
+                return 1.0f;
+            }
+            if (c == '：' || c == '。') { return 0.7f; }
             // 中文汉字、日文假名等宽字符计为1个字符长度
             return 1.0f;
         }
@@ -490,7 +463,7 @@ namespace Yugioh
                         {
                             int posX = 106;
                             int posY = 1854;
-                            if (frameType.Contains("pendulum")) posY += 12;
+                            // if (frameType.Contains("pendulum")) posY += 12;
                             image.Mutate(ctx => ctx.DrawImage(atkDefImage, new Point(posX, posY), 1f));
                         }
                         // 攻击力和守备力/Link值
@@ -554,17 +527,16 @@ namespace Yugioh
                 var pendulumFont = (atkDefFontFamily ?? fontFamily).CreateFont(90f, FontStyle.Bold);
                 var color = Color.Black;
                 int leftScaleX = 122;
-                int leftScaleY = 1415;
-                int rightScaleX = 1230;
-                int rightScaleY = 1415;
+                int ScaleY = 1400;
+                int rightScaleX = 1226;
                 string scaleText = card.PendulumScale.Value.ToString();
                 int offsetX = 0;
                 if (scaleText.Length > 1)
                 {
                     offsetX = 26;
                 }
-                image.Mutate(ctx => ctx.DrawText(scaleText, pendulumFont, color, new PointF(leftScaleX - offsetX, leftScaleY)));
-                image.Mutate(ctx => ctx.DrawText(scaleText, pendulumFont, color, new PointF(rightScaleX - offsetX, rightScaleY)));
+                image.Mutate(ctx => ctx.DrawText(scaleText, pendulumFont, color, new PointF(leftScaleX - offsetX, ScaleY)));
+                image.Mutate(ctx => ctx.DrawText(scaleText, pendulumFont, color, new PointF(rightScaleX - offsetX, ScaleY)));
             }
             catch (Exception ex)
             {
@@ -631,20 +603,6 @@ namespace Yugioh
                 Console.WriteLine($"添加星级/阶级图标失败: {ex.Message}");
             }
         }
-        // ASCII / 窄字符检测
-        private static bool IsAsciiNarrowChar(char c)
-        {
-            if (c == '「' || c == '」' || c == '『' || c == '』' || c == '"' || c == '"' || c == '\'' || c == '\'')
-                return false;
-            if (c == '·') return true; // 霞鹜文楷中间隔号是窄字符,但其他字符基本都不是
-            // ASCII
-            return c <= 127;
-        }
-        // 分隔符（如中点、连字符等）
-        private static bool IsSeparatorChar(char c)
-        {
-            return c == '-' || c == '_' || c == '=' || c == '+' || c == '/';
-        }
         // 攻击力和守备力/Link值
         private static void DrawAtkDefValues(Image image, Card card)
         {
@@ -663,7 +621,7 @@ namespace Yugioh
                 }
                 float atkX = 870f;
                 float atkY = 1859f;
-                if (card.FrameType?.ToLower().Contains("pendulum") == true) atkY += 12f;
+                // if (card.FrameType?.ToLower().Contains("pendulum") == true) atkY += 12f;
                 image.Mutate(ctx => ctx.DrawText(atkText, atkDefFont, color, new PointF(atkX, atkY)));
                 bool isLinkMonster = card.LinkValue.HasValue && card.LinkValue.Value > 0;
                 if (isLinkMonster && card.LinkValue.HasValue)
@@ -688,7 +646,7 @@ namespace Yugioh
                     }
                     float defX = 1156f;
                     float defY = 1859f;
-                    if (card.FrameType?.ToLower().Contains("pendulum") == true) defY += 12f;
+                    // if (card.FrameType?.ToLower().Contains("pendulum") == true) defY += 12f;
                     image.Mutate(ctx => ctx.DrawText(defText, atkDefFont, color, new PointF(defX, defY)));
                 }
             }
@@ -707,11 +665,7 @@ namespace Yugioh
                 var color = frameType.Contains("xyz") ? Color.White : Color.Black;
                 string idText = card.Id.ToString().PadLeft(8, '0');
                 float idX = 66f;
-                float idY = 1935f;
-                if (frameType.Contains("pendulum"))
-                {
-                    idY += PendulumIdYOffset;
-                }
+                float idY = frameType.Contains("pendulum") ? 1939f : 1935f;
                 image.Mutate(ctx => ctx.DrawText(idText, font, color, new PointF(idX, idY)));
             }
             catch (Exception ex)
@@ -730,10 +684,37 @@ namespace Yugioh
                     using (var cardImage = Image.Load(cardImagePath))
                     {
                         var frameType = card.FrameType?.ToLower() ?? "";
-                        int posX = frameType.Contains("pendulum") ? 97 : 179;
-                        int posY = 376;
-                        float scale = 1.69f;
-                        var resizedImage = cardImage.Clone(ctx => ctx.Resize((int)(cardImage.Width * scale), (int)(cardImage.Height * scale)));
+                        int posX = frameType.Contains("pendulum") ? 95 : 169;
+                        int posY = frameType.Contains("pendulum") ? 365 : 376;
+                        int targetWidth = 0;
+                        int targetHeight = 0;
+                        if (!frameType.Contains("pendulum"))
+                        {
+                            targetWidth = 1055;
+                            targetHeight = 1053;
+                        }
+                        else
+                        {
+                            targetWidth = 1205;
+                            if (cardImage.Width == 712 && cardImage.Height == 908)
+                            {
+                                targetHeight = 1546;
+                            }
+                            else if (cardImage.Width == 712 && cardImage.Height == 528)
+                            {
+                                targetHeight = 900;
+                            }
+                            else if (cardImage.Width == 710 && cardImage.Height == 530)
+                            {
+                                // Console.WriteLine($"警告: 灵摆卡图尺寸异常但已知，建议及时检查并修改。ID={card.Id}, 名称={card.Name}, 尺寸={cardImage.Width}x{cardImage.Height}");
+                                targetHeight = 900;
+                            }
+                            else
+                            {
+                                Console.WriteLine($"警告: 灵摆卡图尺寸异常，建议及时检查并修改。ID={card.Id}, 名称={card.Name}, 尺寸={cardImage.Width}x{cardImage.Height}");
+                            }
+                        }
+                        var resizedImage = cardImage.Clone(ctx => ctx.Resize(targetWidth, targetHeight));
                         image.Mutate(ctx => ctx.DrawImage(resizedImage, new Point(posX, posY), 1f));
                     }
                     return true;
@@ -837,25 +818,25 @@ namespace Yugioh
                 };
                 var arrowPositions = new Dictionary<string, Point>
                 {
-                    { "top-left", new Point(100, 300) },
-                    { "top", new Point(570, 280) },
-                    { "top-right", new Point(1140, 300) },
-                    { "left", new Point(80, 760) },
-                    { "right", new Point(1230, 760) },
-                    { "bottom-left", new Point(100, 1335) },
-                    { "bottom", new Point(570, 1427) },
-                    { "bottom-right", new Point(1140, 1335) }
+                    { "top-left", new Point(118, 320) },
+                    { "top", new Point(570, 299) },
+                    { "top-right", new Point(1149, 320) },
+                    { "left", new Point(94, 772) },
+                    { "right", new Point(1224, 773) },
+                    { "bottom-left", new Point(115, 1352) },
+                    { "bottom", new Point(572, 1427) },
+                    { "bottom-right", new Point(1148, 1351) }
                 };
                 var cardLinkMarkers = card.LinkMarkers.Select(m => m.ToLower()).ToList();
                 foreach (var direction in allDirections)
                 {
                     bool isActive = cardLinkMarkers.Contains(direction);
-                    string arrowFileName = $"arrow-{direction}-{(isActive ? "on" : "off")}.png";
-                    string arrowFilePath = Path.Combine(assetFigureDir, ArrowsDir, arrowFileName);
-
-                    if (File.Exists(arrowFilePath))
+                    if (!isActive) continue;
+                    string candidate = $"arrow-{direction}.png";
+                    string candidatePath = Path.Combine(assetFigureDir, ArrowsDir, candidate);
+                    if (File.Exists(candidatePath))
                     {
-                        using (var arrowImage = CloneFromCache(arrowFilePath))
+                        using (var arrowImage = CloneFromCache(candidatePath))
                         {
                             if (arrowPositions.TryGetValue(direction, out Point position))
                             {
@@ -869,7 +850,7 @@ namespace Yugioh
                     }
                     else
                     {
-                        Console.WriteLine($"警告: 未找到箭头图片: {arrowFilePath}");
+                        Console.WriteLine($"警告: 未找到链接箭头图片: {candidatePath}");
                     }
                 }
             }
@@ -930,7 +911,7 @@ namespace Yugioh
                         finalTotalLines = finalLines.Count;
                         break;
                     }
-                    fontSize -= 1f;
+                    fontSize -= 0.5f;
                     iterations++;
                 }
                 var descFont = fontFamily.CreateFont(finalFontSize, FontStyle.Regular);
@@ -981,14 +962,14 @@ namespace Yugioh
                 }
                 else if (isPendulum)
                 {
-                    areaTopY = 1540f;
-                    maxHeight = 1857f - 1540f;
+                    areaTopY = 1533f;
+                    maxHeight = 1850f - 1533f;
                 }
                 else
                 {
                     maxHeight = 1845f - baseAreaY;
                 }
-                float baseMaxEffectiveLength = 29.4f; // 对应字号40
+                float baseMaxEffectiveLength = 29.6f; // 对应字号40
                 int iterations = 0;
                 int maxIterations = 80;
                 int finalTotalLines = 0;
@@ -1037,7 +1018,7 @@ namespace Yugioh
                         finalFontSize = fontSize;
                         break;
                     }
-                    fontSize -= 1f;
+                    fontSize -= 0.5f;
                     iterations++;
                 }
                 var descFont = fontFamily.CreateFont(finalFontSize, FontStyle.Regular);

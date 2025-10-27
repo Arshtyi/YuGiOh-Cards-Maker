@@ -4,7 +4,7 @@ cd "$SCRIPT_DIR/.." || exit 1
 TMP_DIR="tmp"
 rm -rf "$TMP_DIR"
 mkdir -p "$TMP_DIR"
-echo "准备下载并校验外部资源: typeline.conf, token.json, forbidden_and_limited_list..."
+echo "准备下载并校验外部资源: typeline.conf, token.json, forbidden_and_limited_list.tar.xz, yugioh-card-template.tar.xz..."
 download_file() {
     url="$1"
     out="$2"
@@ -116,6 +116,36 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 rm -f "$LIMIT_TAR" "$LIMIT_SHA"
+TEMPLATE_URL="https://github.com/Arshtyi/Card-Templates-Of-YuGiOh/releases/download/1-11/yugioh-card-template.tar.xz"
+TEMPLATE_SHA_URL="https://github.com/Arshtyi/Card-Templates-Of-YuGiOh/releases/download/1-11/yugioh-card-template.tar.xz.sha256"
+TEMPLATE_TAR="$TMP_DIR/yugioh-card-template.tar.xz"
+TEMPLATE_SHA="$TMP_DIR/yugioh-card-template.tar.xz.sha256"
+ASSET_DIR="asset"
+mkdir -p "$ASSET_DIR"
+echo "下载 yugioh-card-template.tar.xz 到 $TEMPLATE_TAR"
+download_file "$TEMPLATE_URL" "$TEMPLATE_TAR"
+if [ $? -ne 0 ]; then
+    echo "错误: 下载 yugioh-card-template.tar.xz 失败"
+    exit 1
+fi
+echo "下载 yugioh-card-template.tar.xz.sha256 到 $TEMPLATE_SHA"
+download_file "$TEMPLATE_SHA_URL" "$TEMPLATE_SHA"
+if [ $? -ne 0 ]; then
+    echo "警告: 无法下载 yugioh-card-template.tar.xz.sha256, 将跳过校验"
+else
+    verify_sha256 "$TEMPLATE_SHA" "$TEMPLATE_TAR"
+    if [ $? -ne 0 ]; then
+        echo "错误: yugioh-card-template.tar.xz 校验失败"
+        exit 1
+    fi
+fi
+echo "解压 $TEMPLATE_TAR 到 $ASSET_DIR"
+tar -xJf "$TEMPLATE_TAR" -C "$ASSET_DIR"
+if [ $? -ne 0 ]; then
+    echo "错误: 解压 yugioh-card-template.tar.xz 到 $ASSET_DIR 失败"
+    exit 1
+fi
+rm -f "$TEMPLATE_TAR" "$TEMPLATE_SHA"
 echo "资源下载与校验完成"
 echo "正在下载ygocdb卡片数据..."
 YGOCDB_ZIP_URL="https://ygocdb.com/api/v0/cards.zip"

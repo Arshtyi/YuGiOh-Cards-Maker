@@ -135,18 +135,21 @@ jobs:
               printf "%s\n" '# 验证SHA-256'
               printf "%s\n" 'sha256sum -c {filename}.sha256'
               printf "%s\n\n" '```'
-              printf "%s\n" "项目地址为[YuGiOh-Cards-Maker](https://github.com/Arshtyi/YuGiOh-Cards-Maker),各依赖与上游如下:"
+              printf "%s\n" "项目地址为[Arshtyi/YuGiOh-Cards-Maker](https://github.com/Arshtyi/YuGiOh-Cards-Maker),各依赖与上游如下:"
               printf "%s\n" "-   禁限信息"
               printf "%s\n" "    -   数据来源:[Yugipedia](https://yugipedia.com/wiki/Yugipedia)"
-              printf "%s\n" "    -   上游:[YuGiOh-Forbidden-And-Limited-List](https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List)"
+              printf "%s\n" "    -   上游:[Arshtyi/YuGiOh-Forbidden-And-Limited-List](https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List)"
               printf "%s\n" "-   卡片信息:[YGOPRODeck](https://ygoprodeck.com/)&[YGOCDB](https://ygocdb.com/)"
-              printf "%s\n" "-   衍生物信息:[YuGiOh-Tokens](https://github.com/Arshtyi/YuGiOh-Tokens)"
-              printf "%s\n" "-   种族:[Translations-Of-YuGiOh-Cards-Type](https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type)"
-              printf "%s\n\n" "-   字体:[霞鹜文楷](https://github.com/lxgw/LxgwWenKai)"
+              printf "%s\n" "-   衍生物信息:[Arshtyi/YuGiOh-Tokens](https://github.com/Arshtyi/YuGiOh-Tokens)"
+              printf "%s\n" "-   种族:[Arshtyi/Translations-Of-YuGiOh-Cards-Type](https://github.com/Arshtyi/Translations-Of-YuGiOh-Cards-Type)"
+              printf "%s\n" "-   卡模:[Arshtyi/Card-Templates-Of-YuGiOh](https://github.com/Arshtyi/Card-Templates-Of-YuGiOh)"
+              printf "%s\n" "-   字体"
+              printf "%s\n" "    -   包括华康楷体在内的诸多字体（大部分已找不到源头）"
+              printf "%s\n\n" "    -   [霞鹜文楷](https://github.com/lxgw/LxgwWenKai)"
               if [ -s "$failure_file" ]; then
                   printf "%s\n" "$table_tip"
                   printf "%s\n%s\n" "| ID | 名称 | 原因 |" "|:---:|:---:|:---:|"
-                  printf "%b" $table_rows
+                  printf "%b" "$table_rows"
               else
                   printf "无失败卡片处理\n"
               fi

@@ -77,6 +77,10 @@ cleanup_directories() {
         print_yellow "删除 obj 目录..."
         rm -rf obj/
     fi
+    if [ -d "asset" ]; then
+        print_yellow "删除 asset 目录..."
+        rm -rf asset/
+    fi
     print_green "清理完成"
 }
 remove_empty_log_files() {
