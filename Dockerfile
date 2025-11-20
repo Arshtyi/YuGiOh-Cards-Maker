@@ -1,22 +1,12 @@
-FROM registry.fedoraproject.org/fedora:42
+FROM registry.fedoraproject.org/fedora:43
 ENV DOTNET_ROOT=/usr/lib64/dotnet
 ENV PATH=$PATH:/usr/lib64/dotnet
 RUN dnf -y upgrade \
-    && dnf -y install \
-       wget \
-       curl \
-       unzip \
-       jq \
-       ImageMagick \
-       python3 \
-       which \
-       tar \
-       xz \
-    && dnf -y clean all \
-    && rm -rf /var/cache/dnf
+    && dnf -y install wget curl unzip jq ImageMagick python3 which tar xz
 RUN rpm -Uvh https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm \
     && dnf -y install dotnet-sdk-8.0 \
-    && dnf -y clean all
+    && dnf -y clean all \
+    && rm -rf /var/cache/dnf
 WORKDIR /app
 COPY . /app
 RUN chmod +x ./YuGiOh-Cards-Maker.sh || true
