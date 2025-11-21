@@ -124,7 +124,7 @@ jobs:
           fi
 
           {
-              printf "自动生成的游戏王简中卡图、卡牌信息和禁限卡表(OCG、TCG、MD三方环境),共包含%s张JPG图片,每个压缩包包含最多10000张JPG图片(文件failure.txt中列出所有处理失败的卡片ID包括其原因)\n\n" "$total_jpg"
+              printf "自动生成的游戏王简中卡图、卡牌信息和禁限卡表(OCG、TCG、MD三方环境)，共包含%s张JPG图片，每个压缩包包含最多10000张JPG图片(文件failure.txt中列出所有处理失败的卡片ID包括其原因)\n\n" "$total_jpg"
               printf "禁限卡表统计：\n\n"
               printf "| 环境 | 禁止 | 限制 | 准限制 | 总计 |\n|:---:|:---:|:---:|:---:|:---:|\n"
               printf "| OCG | %s | %s | %s | %s |\n" "$ocg_forbidden" "$ocg_limited" "$ocg_semi" "$ocg_total"
@@ -135,7 +135,7 @@ jobs:
               printf "%s\n" '# 验证SHA-256'
               printf "%s\n" 'sha256sum -c {filename}.sha256'
               printf "%s\n\n" '```'
-              printf "%s\n" "项目地址为[Arshtyi/YuGiOh-Cards-Maker](https://github.com/Arshtyi/YuGiOh-Cards-Maker),各依赖与上游如下:"
+              printf "%s\n" "项目地址为[Arshtyi/YuGiOh-Cards-Maker](https://github.com/Arshtyi/YuGiOh-Cards-Maker)，各依赖与上游如下:"
               printf "%s\n" "-   禁限信息"
               printf "%s\n" "    -   数据来源:[Yugipedia](https://yugipedia.com/wiki/Yugipedia)"
               printf "%s\n" "    -   上游:[Arshtyi/YuGiOh-Forbidden-And-Limited-List](https://github.com/Arshtyi/YuGiOh-Forbidden-And-Limited-List)"
