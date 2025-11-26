@@ -498,7 +498,7 @@ namespace Yugioh
                         const float scale = 1.15f;
                         int scaledWidth = (int)Math.Round(attributeImage.Width * scale);
                         int scaledHeight = (int)Math.Round(attributeImage.Height * scale);
-                        attributeImage.Mutate(ctx => ctx.Resize(scaledWidth, scaledHeight));
+                        attributeImage.Mutate(ctx => ctx.Resize(new ResizeOptions { Size = new Size(scaledWidth, scaledHeight), Sampler = KnownResamplers.Lanczos3, Mode = ResizeMode.Stretch }));
                         int posX = 1152;
                         int posY = 86;
                         image.Mutate(ctx => ctx.DrawImage(attributeImage, new Point(posX, posY), 1f));
@@ -570,7 +570,7 @@ namespace Yugioh
                     {
                         int scaledWidth = Math.Max(1, (int)MathF.Round(levelIcon.Width * iconScale));
                         int scaledHeight = Math.Max(1, (int)MathF.Round(levelIcon.Height * iconScale));
-                        levelIcon.Mutate(ctx => ctx.Resize(scaledWidth, scaledHeight));
+                        levelIcon.Mutate(ctx => ctx.Resize(new ResizeOptions { Size = new Size(scaledWidth, scaledHeight), Sampler = KnownResamplers.Lanczos3, Mode = ResizeMode.Stretch }));
                     }
                     int iconWidth = levelIcon.Width;
                     int posY = 245;
@@ -714,7 +714,7 @@ namespace Yugioh
                                 Console.WriteLine($"警告: 灵摆卡图尺寸异常，建议及时检查并修改。ID={card.Id}, 名称={card.Name}, 尺寸={cardImage.Width}x{cardImage.Height}");
                             }
                         }
-                        var resizedImage = cardImage.Clone(ctx => ctx.Resize(targetWidth, targetHeight));
+                        var resizedImage = cardImage.Clone(ctx => ctx.Resize(new ResizeOptions { Size = new Size(targetWidth, targetHeight), Sampler = KnownResamplers.Lanczos3, Mode = ResizeMode.Stretch }));
                         image.Mutate(ctx => ctx.DrawImage(resizedImage, new Point(posX, posY), 1f));
                     }
                     return true;
@@ -776,7 +776,7 @@ namespace Yugioh
                             float scale = 1.2f;
                             int newWidth = (int)(iconImage.Width * scale);
                             int newHeight = (int)(iconImage.Height * scale);
-                            var resizedIcon = iconImage.Clone(ctx => ctx.Resize(newWidth, newHeight));
+                            var resizedIcon = iconImage.Clone(ctx => ctx.Resize(new ResizeOptions { Size = new Size(newWidth, newHeight), Sampler = KnownResamplers.Lanczos3, Mode = ResizeMode.Stretch }));
                             image.Mutate(ctx => ctx.DrawImage(resizedIcon, new Point(iconX, iconY), 1f));
                             // 后半部分 "】"
                             float suffixX = iconX + newWidth;
