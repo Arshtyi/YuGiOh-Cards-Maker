@@ -79,6 +79,8 @@ fi
 print_info "Running the C# program..."
 print_info "Arguments: $@"
 
+./bin/Release/net8.0/YuGiOh-Cards-Maker "$@"
+
 if [ "$DEBUG_MODE" = true ]; then
     print_info "Debug mode enabled. Skipping cleanup of temporary files."
 else

@@ -97,13 +97,15 @@ IMAGES_0_URL="https://github.com/Arshtyi/YuGiOh-Cards-Asset/releases/download/la
 IMAGES_0_CHECKSUM="https://github.com/Arshtyi/YuGiOh-Cards-Asset/releases/download/latest/card-images-0.tar.xz.sha256"
 IMAGES_0_FILE="tmp/card-images-0.tar.xz"
 
-if [ ! -f "$IMAGES_0_FILE" ] && [ -z "$(ls -A tmp/figure 2>/dev/null)" ]; then
-    download_and_verify "$IMAGES_0_URL" "$IMAGES_0_CHECKSUM" "$IMAGES_0_FILE"
+if [ -z "$(ls -A tmp/figure 2>/dev/null)" ]; then
+    if [ ! -f "$IMAGES_0_FILE" ]; then
+        download_and_verify "$IMAGES_0_URL" "$IMAGES_0_CHECKSUM" "$IMAGES_0_FILE"
+    fi
     print_info "Extracting card images (part 0) to tmp/figure/..."
     tar -xf "$IMAGES_0_FILE" -C tmp/figure/
     rm "$IMAGES_0_FILE"
 else
-    print_info "Card images (part 0) already downloaded or figure directory not empty, skipping..."
+    print_info "Figure directory not empty, skipping part 0..."
 fi
 
 # Download and extract card images (part 1)
@@ -113,9 +115,8 @@ IMAGES_1_FILE="tmp/card-images-1.tar.xz"
 
 if [ ! -f "$IMAGES_1_FILE" ]; then
     download_and_verify "$IMAGES_1_URL" "$IMAGES_1_CHECKSUM" "$IMAGES_1_FILE"
-    print_info "Extracting card images (part 1) to tmp/figure/..."
-    tar -xf "$IMAGES_1_FILE" -C tmp/figure/
-    rm "$IMAGES_1_FILE"
-else
-    print_info "Card images (part 1) already downloaded, skipping..."
 fi
+
+print_info "Extracting card images (part 1) to tmp/figure/..."
+tar -xf "$IMAGES_1_FILE" -C tmp/figure/
+rm "$IMAGES_1_FILE"
