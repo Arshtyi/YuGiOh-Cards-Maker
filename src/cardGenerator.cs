@@ -27,8 +27,7 @@ namespace Yugioh
         private static readonly string IconsDir = "icons";
         private static readonly string ArrowsDir = "arrows";
         private static readonly ConcurrentDictionary<string, Lazy<Image<Rgba32>>> imageCache = new();
-        private static Font? titleBlackFont;
-        private static Font? titleWhiteFont;
+        private static readonly ConcurrentDictionary<string, Image> resizedImageCache = new();
         private static Color titleBlackColor;
         private static Color titleWhiteColor;
         private static Color titleShadowColor;
@@ -36,14 +35,14 @@ namespace Yugioh
         private static FontFamily? atkDefFontFamily;
         private static FontFamily? linkFontFamily;
         private static FontFamily? passwordFontFamily;
-        private static Image CloneFromCache(string filePath)
+        private static Image GetCachedImage(string filePath)
         {
             if (!File.Exists(filePath))
             {
                 throw new FileNotFoundException($"未找到图片文件: {filePath}", filePath);
             }
             var lazy = imageCache.GetOrAdd(filePath, p => new Lazy<Image<Rgba32>>(() => Image.Load<Rgba32>(p), LazyThreadSafetyMode.ExecutionAndPublication));
-            return lazy.Value.Clone();
+            return lazy.Value;
         }
         private static void ClearImageCache()
         {
@@ -59,6 +58,16 @@ namespace Yugioh
                 catch { }
             }
             imageCache.Clear();
+
+            foreach (var kv in resizedImageCache)
+            {
+                try
+                {
+                    kv.Value.Dispose();
+                }
+                catch { }
+            }
+            resizedImageCache.Clear();
         }
         private static FontCollection LoadFonts()
         {
@@ -67,9 +76,6 @@ namespace Yugioh
             {
                 var fontFamily = fontCollection.Add(FontPath);
                 CardGenerator.fontFamily = fontFamily;
-                float fontSize = 95f;
-                titleBlackFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
-                titleWhiteFont = fontFamily.CreateFont(fontSize, FontStyle.Regular);
                 titleBlackColor = Color.Black;
                 titleWhiteColor = Color.White;
                 titleShadowColor = Color.FromRgba(0, 0, 0, 80);
@@ -189,7 +195,7 @@ namespace Yugioh
             }
             LoadFonts();
             // 并行处理
-            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 200 };
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
             int processed = 0;
             int failed = 0;
             Parallel.ForEach(cardsToProcess, parallelOptions, card =>
@@ -207,83 +213,82 @@ namespace Yugioh
                     {
                         string reason = $"无法找到卡框, 框架类型: {frameType}";
                         Console.WriteLine($"错误: {reason},ID: {card.Id}, 名称: {card.Name}");
-                        WriteFailureRecord(card.Id, reason);
+                        WriteFailureRecord(card.Id, card.Name, reason);
                         Interlocked.Increment(ref failed);
                         return;
                     }
                     // 根据参数决定输出文件扩展名
                     string fileExtension = usePng ? ".png" : ".jpg";
                     var outPath = Path.Combine(outputFigureDir, $"{card.Id}{fileExtension}");
-                    using (var frameImage = Image.Load(frameFile))
+                    var frameImage = GetCachedImage(frameFile);
+
+                    using (var image = new Image<Rgba32>(frameImage.Width, frameImage.Height))
                     {
-                        using (var image = new Image<Rgba32>(frameImage.Width, frameImage.Height))
+                        // 卡图
+                        bool hasArtwork = DrawCardArtwork(image, card, "tmp/figure");
+                        if (!hasArtwork)
                         {
-                            // 卡图
-                            bool hasArtwork = DrawCardArtwork(image, card, "tmp/figure");
-                            if (!hasArtwork)
+                            string reason = "未找到卡图或加载卡图失败";
+                            WriteFailureRecord(card.Id, card.Name, reason);
+                            Interlocked.Increment(ref failed);
+                            return;
+                        }
+                        image.Mutate(ctx => ctx.DrawImage(frameImage, new Point(0, 0), 1f));
+                        // 属性
+                        DrawAttributeImage(image, card, assetFigureDir);
+                        // 攻守条
+                        DrawAtkDefBar(image, card, assetFigureDir);
+                        // 灵摆刻度
+                        DrawPendulumScale(image, card);
+                        // 星级/阶级图标
+                        DrawLevelOrRank(image, card, assetFigureDir);
+                        // Link箭头
+                        DrawLinkArrows(image, card, assetFigureDir);
+                        bool isXyzMonster = frameType.Contains("xyz");
+                        bool isSpellOrTrap = card.CardType?.ToLower() == "spell" || card.CardType?.ToLower() == "trap";
+                        bool isSpecialCard = isXyzMonster || isSpellOrTrap;
+                        // 卡名
+                        DrawCardName(image, card.Name, isSpecialCard);
+                        // ID
+                        DrawCardID(image, card);
+                        // 魔法卡/陷阱卡类型文字
+                        DrawCardTypeText(image, card);
+                        // 灵摆效果
+                        DrawPendulumDescription(image, card);
+                        // 卡牌效果
+                        DrawCardDescription(image, card);
+                        // 根据参数保存
+                        if (usePng)
+                        {
+                            // 保存为无损PNG
+                            var pngEncoder = new PngEncoder
                             {
-                                string reason = "未找到卡图或加载卡图失败";
-                                WriteFailureRecord(card.Id, reason);
-                                Interlocked.Increment(ref failed);
-                                return;
-                            }
-                            image.Mutate(ctx => ctx.DrawImage(frameImage, new Point(0, 0), 1f));
-                            // 属性
-                            DrawAttributeImage(image, card, assetFigureDir);
-                            // 攻守条
-                            DrawAtkDefBar(image, card, assetFigureDir);
-                            // 灵摆刻度
-                            DrawPendulumScale(image, card);
-                            // 星级/阶级图标
-                            DrawLevelOrRank(image, card, assetFigureDir);
-                            // Link箭头
-                            DrawLinkArrows(image, card, assetFigureDir);
-                            bool isXyzMonster = frameType.Contains("xyz");
-                            bool isSpellOrTrap = card.CardType?.ToLower() == "spell" || card.CardType?.ToLower() == "trap";
-                            bool isSpecialCard = isXyzMonster || isSpellOrTrap;
-                            // 卡名
-                            DrawCardName(image, card.Name, isSpecialCard);
-                            // ID
-                            DrawCardID(image, card);
-                            // 魔法卡/陷阱卡类型文字
-                            DrawCardTypeText(image, card);
-                            // 灵摆效果
-                            DrawPendulumDescription(image, card);
-                            // 卡牌效果
-                            DrawCardDescription(image, card);
-                            // 根据参数保存
-                            if (usePng)
+                                CompressionLevel = PngCompressionLevel.BestCompression
+                            };
+                            image.Save(outPath, pngEncoder);
+                        }
+                        else
+                        {
+                            // 保存为JPG（质量50%）
+                            var jpegEncoder = new JpegEncoder
                             {
-                                // 保存为无损PNG
-                                var pngEncoder = new PngEncoder
+                                Quality = 50
+                            };
+                            image.Save(outPath, jpegEncoder);
+                        }
+                        // 在非debug模式下删除临时目录中的原始PNG
+                        if (!debug)
+                        {
+                            string tmpPngPath = Path.Combine("tmp/figure", $"{card.Id}.png");
+                            if (File.Exists(tmpPngPath))
+                            {
+                                try
                                 {
-                                    CompressionLevel = PngCompressionLevel.BestCompression
-                                };
-                                image.Save(outPath, pngEncoder);
-                            }
-                            else
-                            {
-                                // 保存为JPG（质量50%）
-                                var jpegEncoder = new JpegEncoder
+                                    File.Delete(tmpPngPath);
+                                }
+                                catch (Exception ex)
                                 {
-                                    Quality = 50
-                                };
-                                image.Save(outPath, jpegEncoder);
-                            }
-                            // 在非debug模式下删除临时目录中的原始PNG
-                            if (!debug)
-                            {
-                                string tmpPngPath = Path.Combine("tmp/figure", $"{card.Id}.png");
-                                if (File.Exists(tmpPngPath))
-                                {
-                                    try
-                                    {
-                                        File.Delete(tmpPngPath);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Console.WriteLine($"警告: 无法删除临时PNG: {tmpPngPath}, 错误: {ex.Message}");
-                                    }
+                                    Console.WriteLine($"警告: 无法删除临时PNG: {tmpPngPath}, 错误: {ex.Message}");
                                 }
                             }
                         }
@@ -298,7 +303,7 @@ namespace Yugioh
                 {
                     string reason = $"处理异常: {ex.Message}";
                     Console.WriteLine($"处理卡片失败: ID={card.Id}, 名称={card.Name}, 错误: {ex.Message}");
-                    WriteFailureRecord(card.Id, reason);
+                    WriteFailureRecord(card.Id, card.Name, reason);
                     Interlocked.Increment(ref failed);
                 }
             });
@@ -334,7 +339,7 @@ namespace Yugioh
                     float effLen = ComputeEffectiveCharLength(cardName);
                     if (effLen <= currentMaxEffectiveLength)
                     {
-                        measuredWidth = MeasureTextPixelWidth(cardName, titleFont, textColor);
+                        measuredWidth = MeasureTextPixelWidth(cardName, titleFont);
                         if (measuredWidth <= areaWidth || fontSize <= 30f) break;
                     }
                     fontSize -= 0.5f;
@@ -405,44 +410,19 @@ namespace Yugioh
             }
             return effectiveLength;
         }
-        // 离屏渲染测量文本真实像素宽度（忽略完全透明像素）
-        private static float MeasureTextPixelWidth(string text, Font font, Color color)
+        // 使用 TextMeasurer 测量文本宽度
+        private static float MeasureTextPixelWidth(string text, Font font)
         {
             try
             {
                 if (string.IsNullOrEmpty(text)) return 0f;
-                // 预估画布：给每字符 font.Size*1.6 的宽度余量，最少 200
-                int estimatedWidth = Math.Max(200, (int)Math.Ceiling(font.Size * text.Length * 1.6f));
-                int estimatedHeight = (int)Math.Ceiling(font.Size * 2.0f);
-                if (estimatedWidth > 5000) estimatedWidth = 5000; // 防止异常放大
-                using var temp = new Image<Rgba32>(estimatedWidth, estimatedHeight, Color.Transparent);
-                temp.Mutate(ctx => ctx.DrawText(text, font, color, new PointF(0, 0)));
-                int left = estimatedWidth;
-                int right = -1;
-                temp.ProcessPixelRows(accessor =>
-                {
-                    for (int y = 0; y < accessor.Height; y++)
-                    {
-                        var span = accessor.GetRowSpan(y);
-                        for (int x = 0; x < span.Length; x++)
-                        {
-                            if (span[x].A > 10) // 有效像素
-                            {
-                                if (x < left) left = x;
-                                if (x > right) right = x;
-                            }
-                        }
-                    }
-                });
-                if (right >= left && right >= 0)
-                {
-                    return (right - left + 1);
-                }
-                return 0f;
+                var options = new TextOptions(font);
+                var rect = TextMeasurer.MeasureBounds(text, options);
+                return rect.Width;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[CardName] 离屏测量异常: {ex.Message}");
+                Console.WriteLine($"[CardName] 测量异常: {ex.Message}");
                 return 0f;
             }
         }
@@ -459,13 +439,13 @@ namespace Yugioh
                     string atkDefImagePath = Path.Combine(assetFigureDir, IndicatorsDir, atkDefImageName);
                     if (File.Exists(atkDefImagePath))
                     {
-                        using (var atkDefImage = CloneFromCache(atkDefImagePath))
-                        {
-                            int posX = 106;
-                            int posY = 1854;
-                            // if (frameType.Contains("pendulum")) posY += 12;
-                            image.Mutate(ctx => ctx.DrawImage(atkDefImage, new Point(posX, posY), 1f));
-                        }
+                        var atkDefImage = GetCachedImage(atkDefImagePath);
+
+                        int posX = 106;
+                        int posY = 1854;
+                        // if (frameType.Contains("pendulum")) posY += 12;
+                        image.Mutate(ctx => ctx.DrawImage(atkDefImage, new Point(posX, posY), 1f));
+
                         // 攻击力和守备力/Link值
                         DrawAtkDefValues(image, card);
                     }
@@ -493,16 +473,21 @@ namespace Yugioh
                 string attributeImagePath = Path.Combine(assetFigureDir, AttributesDir, attributeImageName);
                 if (File.Exists(attributeImagePath))
                 {
-                    using (var attributeImage = CloneFromCache(attributeImagePath))
+                    const float scale = 1.15f;
+                    string cacheKey = $"{attributeImagePath}_{scale}";
+                    var attributeImage = resizedImageCache.GetOrAdd(cacheKey, _ =>
                     {
-                        const float scale = 1.15f;
-                        int scaledWidth = (int)Math.Round(attributeImage.Width * scale);
-                        int scaledHeight = (int)Math.Round(attributeImage.Height * scale);
-                        attributeImage.Mutate(ctx => ctx.Resize(new ResizeOptions { Size = new Size(scaledWidth, scaledHeight), Sampler = KnownResamplers.Lanczos3, Mode = ResizeMode.Stretch }));
-                        int posX = 1152;
-                        int posY = 86;
-                        image.Mutate(ctx => ctx.DrawImage(attributeImage, new Point(posX, posY), 1f));
-                    }
+                        var original = GetCachedImage(attributeImagePath);
+                        var cloned = original.Clone(_ => { });
+                        int scaledWidth = (int)Math.Round(original.Width * scale);
+                        int scaledHeight = (int)Math.Round(original.Height * scale);
+                        cloned.Mutate(ctx => ctx.Resize(new ResizeOptions { Size = new Size(scaledWidth, scaledHeight), Sampler = KnownResamplers.Lanczos3, Mode = ResizeMode.Stretch }));
+                        return cloned;
+                    });
+
+                    int posX = 1152;
+                    int posY = 86;
+                    image.Mutate(ctx => ctx.DrawImage(attributeImage, new Point(posX, posY), 1f));
                 }
                 else
                 {
@@ -563,38 +548,43 @@ namespace Yugioh
                     return;
                 }
                 int iconSpacing = 0;
-                using (var levelIcon = CloneFromCache(iconFilePath))
+                const float iconScale = 1.08f;
+                string cacheKey = $"{iconFilePath}_{iconScale}";
+                var levelIcon = resizedImageCache.GetOrAdd(cacheKey, _ =>
                 {
-                    const float iconScale = 1.08f;
+                    var original = GetCachedImage(iconFilePath);
+                    var cloned = original.Clone(_ => { });
                     if (iconScale != 1f)
                     {
-                        int scaledWidth = Math.Max(1, (int)MathF.Round(levelIcon.Width * iconScale));
-                        int scaledHeight = Math.Max(1, (int)MathF.Round(levelIcon.Height * iconScale));
-                        levelIcon.Mutate(ctx => ctx.Resize(new ResizeOptions { Size = new Size(scaledWidth, scaledHeight), Sampler = KnownResamplers.Lanczos3, Mode = ResizeMode.Stretch }));
+                        int scaledWidth = Math.Max(1, (int)MathF.Round(original.Width * iconScale));
+                        int scaledHeight = Math.Max(1, (int)MathF.Round(original.Height * iconScale));
+                        cloned.Mutate(ctx => ctx.Resize(new ResizeOptions { Size = new Size(scaledWidth, scaledHeight), Sampler = KnownResamplers.Lanczos3, Mode = ResizeMode.Stretch }));
                     }
-                    int iconWidth = levelIcon.Width;
-                    int posY = 245;
-                    if (isXyz)
+                    return cloned;
+                });
+
+                int iconWidth = levelIcon.Width;
+                int posY = 245;
+                if (isXyz)
+                {
+                    // 阶级从左边开始
+                    // 特殊处理13阶
+                    int leftStartX = card.Level.Value == 13 ? 80 : 123;
+                    for (int i = 0; i < card.Level.Value; i++)
                     {
-                        // 阶级从左边开始
-                        // 特殊处理13阶
-                        int leftStartX = card.Level.Value == 13 ? 80 : 123;
-                        for (int i = 0; i < card.Level.Value; i++)
-                        {
-                            int posX = leftStartX + (i * (iconWidth + iconSpacing));
-                            image.Mutate(ctx => ctx.DrawImage(levelIcon, new Point(posX, posY), 1f));
-                        }
+                        int posX = leftStartX + (i * (iconWidth + iconSpacing));
+                        image.Mutate(ctx => ctx.DrawImage(levelIcon, new Point(posX, posY), 1f));
                     }
-                    else
+                }
+                else
+                {
+                    // 星级从右边开始
+                    // 特殊处理13星，尽管截止本更新时游戏王还没有卡面上的13星怪兽
+                    int rightTopX = card.Level.Value == 13 ? 1328 : 1275;
+                    for (int i = 0; i < card.Level.Value; i++)
                     {
-                        // 星级从右边开始
-                        // 特殊处理13星，尽管截止本更新时游戏王还没有卡面上的13星怪兽
-                        int rightTopX = card.Level.Value == 13 ? 1328 : 1275;
-                        for (int i = 0; i < card.Level.Value; i++)
-                        {
-                            int posX = rightTopX - (i * (iconWidth + iconSpacing));
-                            image.Mutate(ctx => ctx.DrawImage(levelIcon, new Point(posX - iconWidth, posY), 1f));
-                        }
+                        int posX = rightTopX - (i * (iconWidth + iconSpacing));
+                        image.Mutate(ctx => ctx.DrawImage(levelIcon, new Point(posX - iconWidth, posY), 1f));
                     }
                 }
             }
@@ -714,8 +704,8 @@ namespace Yugioh
                                 Console.WriteLine($"警告: 灵摆卡图尺寸异常，建议及时检查并修改。ID={card.Id}, 名称={card.Name}, 尺寸={cardImage.Width}x{cardImage.Height}");
                             }
                         }
-                        var resizedImage = cardImage.Clone(ctx => ctx.Resize(new ResizeOptions { Size = new Size(targetWidth, targetHeight), Sampler = KnownResamplers.Lanczos3, Mode = ResizeMode.Stretch }));
-                        image.Mutate(ctx => ctx.DrawImage(resizedImage, new Point(posX, posY), 1f));
+                        cardImage.Mutate(ctx => ctx.Resize(new ResizeOptions { Size = new Size(targetWidth, targetHeight), Sampler = KnownResamplers.Lanczos3, Mode = ResizeMode.Stretch }));
+                        image.Mutate(ctx => ctx.DrawImage(cardImage, new Point(posX, posY), 1f));
                     }
                     return true;
                 }
@@ -743,15 +733,7 @@ namespace Yugioh
                 bool isSpell = card.CardType?.ToLower() == "spell";
                 string race = card.Race?.ToLower() ?? "normal";
                 bool hasIcon = race != "normal";
-                string fontPath = FontPath;
-                if (!File.Exists(fontPath))
-                {
-                    Console.WriteLine($"错误: 未找到卡片类型字体文件: {fontPath}");
-                    return;
-                }
-                var fontCollection = new FontCollection();
-                var fontFamily = fontCollection.Add(fontPath);
-                var font = fontFamily.CreateFont(80f, FontStyle.Regular);
+                var font = CardGenerator.fontFamily.CreateFont(80f, FontStyle.Regular);
                 var color = Color.Black;
                 float posY = 256f;
                 if (hasIcon)
@@ -769,19 +751,21 @@ namespace Yugioh
                     string iconPath = Path.Combine("asset", "figure", IconsDir, iconName);
                     if (File.Exists(iconPath))
                     {
-                        using (var iconImage = CloneFromCache(iconPath))
+                        var iconImage = GetCachedImage(iconPath);
+
+                        int iconX = 1120;
+                        int iconY = 250;
+                        float scale = 1.2f;
+                        int newWidth = (int)(iconImage.Width * scale);
+                        int newHeight = (int)(iconImage.Height * scale);
+                        using (var resizedIcon = iconImage.Clone(ctx => ctx.Resize(new ResizeOptions { Size = new Size(newWidth, newHeight), Sampler = KnownResamplers.Lanczos3, Mode = ResizeMode.Stretch })))
                         {
-                            int iconX = 1120;
-                            int iconY = 250;
-                            float scale = 1.2f;
-                            int newWidth = (int)(iconImage.Width * scale);
-                            int newHeight = (int)(iconImage.Height * scale);
-                            var resizedIcon = iconImage.Clone(ctx => ctx.Resize(new ResizeOptions { Size = new Size(newWidth, newHeight), Sampler = KnownResamplers.Lanczos3, Mode = ResizeMode.Stretch }));
                             image.Mutate(ctx => ctx.DrawImage(resizedIcon, new Point(iconX, iconY), 1f));
-                            // 后半部分 "】"
-                            float suffixX = iconX + newWidth;
-                            image.Mutate(ctx => ctx.DrawText("】", font, color, new PointF(suffixX, posY)));
                         }
+                        // 后半部分 "】"
+                        float suffixX = iconX + newWidth;
+                        image.Mutate(ctx => ctx.DrawText("】", font, color, new PointF(suffixX, posY)));
+
                     }
                     else
                     {
@@ -836,17 +820,17 @@ namespace Yugioh
                     string candidatePath = Path.Combine(assetFigureDir, ArrowsDir, candidate);
                     if (File.Exists(candidatePath))
                     {
-                        using (var arrowImage = CloneFromCache(candidatePath))
+                        var arrowImage = GetCachedImage(candidatePath);
+
+                        if (arrowPositions.TryGetValue(direction, out Point position))
                         {
-                            if (arrowPositions.TryGetValue(direction, out Point position))
-                            {
-                                image.Mutate(ctx => ctx.DrawImage(arrowImage, position, 1f));
-                            }
-                            else
-                            {
-                                Console.WriteLine($"警告: 未找到箭头位置配置: {direction}");
-                            }
+                            image.Mutate(ctx => ctx.DrawImage(arrowImage, position, 1f));
                         }
+                        else
+                        {
+                            Console.WriteLine($"警告: 未找到箭头位置配置: {direction}");
+                        }
+
                     }
                     else
                     {
@@ -1088,7 +1072,7 @@ namespace Yugioh
             }
             return result;
         }
-        private static void WriteFailureRecord(object idObj, string reason)
+        private static void WriteFailureRecord(object idObj, string name, string reason)
         {
             try
             {
@@ -1099,7 +1083,7 @@ namespace Yugioh
                 {
                     Directory.CreateDirectory(dir);
                 }
-                string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ID = {id} 原因 = {reason}{Environment.NewLine}";
+                string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ID = {id} Name = {name} 原因 = {reason}{Environment.NewLine}";
                 lock (failureFileLock)
                 {
                     File.AppendAllText(failureFile, line);

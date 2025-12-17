@@ -1,0 +1,116 @@
+name: Release
+
+on:
+  schedule:
+    - cron: "0 16 * * 1,5"
+  push:
+    paths: ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Delete existing 'latest' release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete latest --cleanup-tag -y || true
+
+      - name: Run YuGiOh-Cards-Maker
+        run: |
+          chmod +x YuGiOh-Cards-Maker.sh
+          ./YuGiOh-Cards-Maker.sh
+
+      - name: Package Images
+        run: |
+          cd figure
+          # Find all files, sort them to be deterministic
+          find . -maxdepth 1 -type f | sort > ../all_files.txt
+
+          # Split into chunks of 10000
+          split -l 10000 -d --additional-suffix=.txt ../all_files.txt ../file_chunk_
+
+          cd ..
+          mkdir -p release_assets
+
+          # Iterate over chunks
+          for chunk in file_chunk_*.txt; do
+            # Extract index from filename (e.g., file_chunk_00.txt -> 0)
+            # Remove prefix 'file_chunk_' and suffix '.txt'
+            suffix="${chunk#file_chunk_}"
+            suffix="${suffix%.txt}"
+            # Remove leading zeros (be careful with 08 and 09 in bash)
+            i=$((10#$suffix))
+
+            tar_name="cards_${i}.tar.xz"
+
+            # Create tarball from file list.
+            # -C figure changes directory to figure so paths in tar are relative to it (flattened)
+            # -T reads files from the chunk file (which contains ./filename)
+            tar -cJf "release_assets/$tar_name" -C figure -T "$chunk"
+
+            # Generate sha256
+            sha256sum "release_assets/$tar_name" > "release_assets/$tar_name.sha256"
+          done
+
+      - name: Prepare JSON Asset
+        run: |
+          if [ -f "tmp/cards.json" ]; then
+            cp tmp/cards.json release_assets/
+            sha256sum release_assets/cards.json > release_assets/cards.json.sha256
+          else
+            echo "Warning: tmp/cards.json not found"
+          fi
+
+      - name: Generate Release Body
+        id: release_body
+        run: |
+          echo "## Project Information" > release_body.md
+          echo "YuGiOh Cards Maker - Automated Release" >> release_body.md
+          echo "" >> release_body.md
+
+          if [ -f "log/failure.txt" ] && [ -s "log/failure.txt" ]; then
+            echo "## Failure Report" >> release_body.md
+            echo "| Card ID | Card Name | Failure Reason |" >> release_body.md
+            echo "| :---: | :---: | :---: |" >> release_body.md
+
+            # Parse log file
+            # Format: [Date Time] ID = {id} Name = {name} 原因 = {reason}
+
+            while IFS= read -r line; do
+              # Use regex to extract fields
+              if [[ $line =~ ID\ =\ (.*)\ Name\ =\ (.*)\ 原因\ =\ (.*) ]]; then
+                id="${BASH_REMATCH[1]}"
+                name="${BASH_REMATCH[2]}"
+                reason="${BASH_REMATCH[3]}"
+                echo "| $id | $name | $reason |" >> release_body.md
+              elif [[ $line =~ ID\ =\ (.*)\ 原因\ =\ (.*) ]]; then
+                 # Fallback for old format if any
+                id="${BASH_REMATCH[1]}"
+                reason="${BASH_REMATCH[2]}"
+                echo "| $id | Unknown | $reason |" >> release_body.md
+              fi
+            done < log/failure.txt
+          fi
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create latest \
+            --title "Latest Release" \
+            --notes-file release_body.md \
+            --target main \
+            release_assets/*

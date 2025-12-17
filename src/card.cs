@@ -12,6 +12,7 @@ namespace Yugioh
         [JsonPropertyName("cardType")]
         public string? CardType { get; set; }
         [JsonPropertyName("cardImage")]
+        [JsonConverter(typeof(StringNumericConverter))]
         public string? ArtworkFilename { get; set; }
         [JsonPropertyName("linkVal")]
         public int? LinkValue { get; set; }
