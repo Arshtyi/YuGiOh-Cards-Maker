@@ -32,18 +32,20 @@
 ### Global
 
 ```bash
-# On fedora
-## download res
+## download resource
 chmod +x script/download_resources.sh
 ./script/download_resources.sh
-## build & run
+
+## build
 sudo dnf update && sudo dnf install dotnet-sdk-8.0
 dotnet restore
-dotnet buld
+dotnet build
+
+## run
 dotnet run
 ```
 
-或者
+or
 
 ```bash
 chmod +x YuGiOh-Cards-Maker.sh
@@ -53,13 +55,16 @@ chmod +x YuGiOh-Cards-Maker.sh
 ### Docker
 
 ```bash
+# build & run
 docker build -t yugioh-cards-maker:latest .
 docker run -it yugioh-cards-maker:latest
+
+# get output
 docker ps -a
 docker cp <CONTAINER_ID>:/app/figure ./figure
 ```
 
-或者
+or
 
 ```bash
 docker pull ghcr.io/arshtyi/yugioh-cards-maker:latest
