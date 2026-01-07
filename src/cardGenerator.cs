@@ -769,7 +769,7 @@ namespace Yugioh
                     }
                     else
                     {
-                        Console.WriteLine($"警告: 未找到图标: {iconPath}");
+                        Console.WriteLine($"警告: 卡片{card.Id} 未找到图标: {iconPath}");
                         image.Mutate(ctx => ctx.DrawText("】", font, color, new PointF(startX + prefixSize.Width, posY)));
                     }
                 }
