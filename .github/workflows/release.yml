@@ -81,6 +81,17 @@ jobs:
           echo "YuGiOh Cards Maker - Automated Release" >> release_body.md
           echo "" >> release_body.md
 
+          if [ -f "tmp/cards.json" ]; then
+            card_count=$(jq 'length' tmp/cards.json)
+            echo "- **Total Cards Data**: $card_count" >> release_body.md
+          fi
+
+          if [ -d "figure" ]; then
+            image_count=$(find figure -maxdepth 1 -type f | wc -l)
+            echo "- **Total Generated Images**: $image_count" >> release_body.md
+          fi
+          echo "" >> release_body.md
+
           if [ -f "log/failure.txt" ] && [ -s "log/failure.txt" ]; then
             echo "## Failure Report" >> release_body.md
             echo "| Card ID | Card Name | Failure Reason |" >> release_body.md
