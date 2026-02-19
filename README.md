@@ -1,12 +1,12 @@
 # YuGiOh-Cards-Maker
 
--   简中游戏王卡片生成项目
--   因传播造成的版权问题与开发者无关
+- 简中游戏王卡片生成项目
+- 因传播造成的版权问题与开发者无关
 
 ## 项目介绍
 
--   本项目是一个**自动制作简中游戏王卡片图片及数据信息的无 GUI 工具**，若为 DIY 向制图请往别处
--   本项目利用 Github Actions [Release](https://github.com/Arshtyi/YuGiOh-Cards-Maker/releases/tag/latest) 卡牌(图片压缩包以及所有数据)
+- 本项目是一个**自动制作简中游戏王卡片图片及数据信息的无 GUI 工具**，若为 DIY 向制图请往别处
+- 本项目利用 Github Actions [Release](https://github.com/Arshtyi/YuGiOh-Cards-Maker/releases/tag/latest) 卡牌(图片压缩包以及所有数据)
 
 ## 项目上游
 
@@ -74,58 +74,57 @@ docker pull ghcr.io/arshtyi/yugioh-cards-maker:latest
 
 ### 默认行为
 
--   尽可能`cards.json`所有卡图
--   删除 `tmp/figure`下的中心图
--   生成质量为 50% 的 jpg 图片
+- 尽可能`cards.json`所有卡图
+- 删除 `tmp/figure`下的中心图
+- 生成质量为 50% 的 jpg 图片
 
 ### Shell 继承参数
 
 这些参数能够由 shell 脚本 `YuGiOh-Cards-Maker.sh`继承给 C# 程序,Docker 则追加到 run 命令之后即可.
 
 1.  `--debug`：
-
-    -   只生成 `dev/debug.txt`对应 ID 的卡片
-    -   不清理各中间目录
+    - 只生成 `dev/debug.txt`对应 ID 的卡片
+    - 不清理各中间目录
 
 2.  `--png`：生成无损 png 而不是 50%质量的 jpg.
 
 ## Contact me
 
--   E-mail:arshtyi@foxmail.com
--   QQ:64006128
+- E-mail:arshtyi@foxmail.com
+- QQ:64006128
 
 ## Thx
 
 ### Code
 
--   ChatGPT
--   Claude
+- ChatGPT
+- Claude
 
 ### 卡模
 
--   感谢白羽幸鳥制作的卡模
--   关于卡模的更多信息请访问[Arshtyi/Card-Templates-Of-YuGiOh](https://github.com/Arshtyi/Card-Templates-Of-YuGiOh)
+- 感谢白羽幸鳥制作的卡模
+- 关于卡模的更多信息请访问[Arshtyi/Card-Templates-Of-YuGiOh](https://github.com/Arshtyi/Card-Templates-Of-YuGiOh)
 
 ### Font
 
--   包括华康楷体在内的诸多字体（大部分已找不到源头）
--   [霞鹜文楷](https://github.com/lxgw/LxgwWenKai)
+- 包括华康楷体在内的诸多字体（大部分已找不到源头）
+- [霞鹜文楷](https://github.com/lxgw/LxgwWenKai)
 
 关于字体的更多信息请访问[Arshtyi/Card-Templates-Of-YuGiOh](https://github.com/Arshtyi/Card-Templates-Of-YuGiOh)
 
 ### API
 
--   [YGOProDeck](https://ygoprodeck.com/)
--   [YGOCDB](https://ygocdb.com/)
+- [YGOProDeck](https://ygoprodeck.com/)
+- [YGOCDB](https://ygocdb.com/)
 
 ### 禁限卡表
 
--   [Yugipedia](https://yugipedia.com/wiki/Yugipedia)
+- [Yugipedia](https://yugipedia.com/wiki/Yugipedia)
 
 ### 制图思路
 
--   [MyCard](https://github.com/mycard)
--   [Canvas-YuGiOh-Cards](https://github.com/kooriookami/yugioh-card)
+- [MyCard](https://github.com/mycard)
+- [Canvas-YuGiOh-Cards](https://github.com/kooriookami/yugioh-card)
 
 ### RHS
 
