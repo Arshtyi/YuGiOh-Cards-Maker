@@ -74,8 +74,8 @@ docker pull ghcr.io/arshtyi/yugioh-cards-maker:latest
 
 ### 默认行为
 
-- 尽可能`cards.json`所有卡图
-- 删除 `tmp/figure`下的中心图
+- 尽可能生成`cards.json`所有卡图
+- 删除`tmp/figure`下的中心图
 - 生成质量为 50% 的 jpg 图片
 
 ### Shell 继承参数
