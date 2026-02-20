@@ -252,7 +252,14 @@ namespace Yugioh
                         // ID
                         DrawCardID(image, card);
                         // 魔法卡/陷阱卡类型文字
-                        DrawCardTypeText(image, card);
+                        bool hasTypeIcon = DrawCardTypeText(image, card);
+                        if (!hasTypeIcon)
+                        {
+                            string reason = "未找到魔法/陷阱卡图标";
+                            WriteFailureRecord(card.Id, card.Name, reason);
+                            Interlocked.Increment(ref failed);
+                            return;
+                        }
                         // 灵摆效果
                         DrawPendulumDescription(image, card);
                         // 卡牌效果
@@ -722,13 +729,13 @@ namespace Yugioh
             }
         }
         // 魔法卡/陷阱卡字样及icon
-        private static void DrawCardTypeText(Image image, Card card)
+        private static bool DrawCardTypeText(Image image, Card card)
         {
             try
             {
                 if (card.CardType?.ToLower() != "spell" && card.CardType?.ToLower() != "trap")
                 {
-                    return;
+                    return true;
                 }
                 bool isSpell = card.CardType?.ToLower() == "spell";
                 string race = card.Race?.ToLower() ?? "normal";
@@ -770,7 +777,7 @@ namespace Yugioh
                     else
                     {
                         Console.WriteLine($"警告: 卡片{card.Id} 未找到图标: {iconPath}");
-                        image.Mutate(ctx => ctx.DrawText("】", font, color, new PointF(startX + prefixSize.Width, posY)));
+                        return false;
                     }
                 }
                 else
@@ -778,10 +785,12 @@ namespace Yugioh
                     string fullText = isSpell ? "【魔法卡】" : "【陷阱卡】";
                     image.Mutate(ctx => ctx.DrawText(fullText, font, color, new PointF(880f, posY)));
                 }
+                return true;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"添加卡片类型文字失败: {ex.Message}");
+                return false;
             }
         }
         // Link箭头
