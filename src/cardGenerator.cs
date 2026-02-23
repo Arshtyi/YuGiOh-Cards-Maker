@@ -39,7 +39,7 @@ namespace Yugioh
         {
             if (!File.Exists(filePath))
             {
-                throw new FileNotFoundException($"未找到图片文件: {filePath}", filePath);
+                throw new FileNotFoundException($"未找到图片文件: {filePath}");
             }
             var lazy = imageCache.GetOrAdd(filePath, p => new Lazy<Image<Rgba32>>(() => Image.Load<Rgba32>(p), LazyThreadSafetyMode.ExecutionAndPublication));
             return lazy.Value;
@@ -86,7 +86,7 @@ namespace Yugioh
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"加载字体失败: {ex.Message}");
+                AppLogger.Error("CardGenerator/Font", "字体加载失败。", ex);
                 throw;
             }
         }
@@ -101,20 +101,20 @@ namespace Yugioh
                 }
                 else
                 {
-                    Console.WriteLine($"警告: 未找到特殊字体文件: {path}");
+                    AppLogger.Warn("CardGenerator/Font", $"未找到特殊字体文件：{path}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"警告: 加载特殊字体失败: {path}, 错误: {ex.Message}");
+                AppLogger.Warn("CardGenerator/Font", $"加载特殊字体失败：{path} | Exception={ex.Message}");
             }
         }
         public static void GenerateCardImages(string cardsJsonPath, string assetFigureDir, string outputFigureDir, bool debug = false, bool usePng = false)
         {
-            Console.WriteLine("开始卡片图像生成...");
+            AppLogger.Info("CardGenerator", "开始生成卡片图像。");
             if (!File.Exists(cardsJsonPath))
             {
-                Console.WriteLine($"错误: 未找到卡片数据文件: {cardsJsonPath}");
+                AppLogger.Error("CardGenerator", $"未找到卡片数据文件：{cardsJsonPath}");
                 return;
             }
             try
@@ -129,7 +129,7 @@ namespace Yugioh
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"警告: 无法清空 log/failure.txt: {ex.Message}");
+                AppLogger.Warn("CardGenerator", $"无法清空失败记录文件 log/failure.txt。Exception={ex.Message}");
             }
             // 清空输出
             if (Directory.Exists(outputFigureDir))
@@ -152,7 +152,7 @@ namespace Yugioh
             var dict = JsonSerializer.Deserialize<Dictionary<string, Card>>(json, jsonOptions);
             if (dict == null)
             {
-                Console.WriteLine("错误: 卡片数据解析失败");
+                AppLogger.Error("CardGenerator", "卡片数据解析失败。");
                 return;
             }
             var allValidCards = dict.Values.Where(c => !string.IsNullOrEmpty(c.FrameType)).ToList();
@@ -172,26 +172,26 @@ namespace Yugioh
                         }
                         else
                         {
-                            Console.WriteLine($"警告: debug.txt中的ID {idStr} 在cards.json中不存在或没有有效的框架类型");
+                            AppLogger.Warn("CardGenerator/Debug", $"debug.txt 中的 ID 在 cards.json 中不存在或无有效框架类型：{idStr}");
                         }
                     }
-                    Console.WriteLine($"将仅处理debug.txt中指定的{cardsToProcess.Count}张卡片");
-                    Console.WriteLine("Debug模式下不会删除tmp/figure目录下的原始PNG文件");
+                    AppLogger.Info("CardGenerator/Debug", $"将仅处理 debug.txt 指定的卡片，共 {cardsToProcess.Count} 张。");
+                    AppLogger.Info("CardGenerator/Debug", "调试模式下不会删除 tmp/figure 目录中的原始 PNG 文件。");
                     if (cardsToProcess.Count == 0)
                     {
-                        Console.WriteLine("警告: debug.txt中没有匹配到任何有效的ID");
+                        AppLogger.Warn("CardGenerator/Debug", "debug.txt 中未匹配到任何有效 ID。");
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"警告: 未找到debug文件: {debugFilePath}, 将退出处理");
+                    AppLogger.Warn("CardGenerator/Debug", $"未找到调试文件：{debugFilePath}，处理流程将退出。");
                     return;
                 }
             }
             else
             {
                 cardsToProcess = allValidCards;
-                Console.WriteLine($"将处理全部{allValidCards.Count}张卡片");
+                AppLogger.Info("CardGenerator", $"将处理全部有效卡片，共 {allValidCards.Count} 张。");
             }
             LoadFonts();
             // 并行处理
@@ -212,7 +212,7 @@ namespace Yugioh
                     if (frameFile == null)
                     {
                         string reason = $"无法找到卡框, 框架类型: {frameType}";
-                        Console.WriteLine($"错误: {reason},ID: {card.Id}, 名称: {card.Name}");
+                        AppLogger.Error("CardGenerator", $"卡框加载失败。CardId={card.Id} CardName={card.Name} Reason={reason}");
                         WriteFailureRecord(card.Id, card.Name, reason);
                         Interlocked.Increment(ref failed);
                         return;
@@ -228,7 +228,7 @@ namespace Yugioh
                         bool hasArtwork = DrawCardArtwork(image, card, "tmp/figure");
                         if (!hasArtwork)
                         {
-                            string reason = "未找到卡图或加载卡图失败";
+                            string reason = "加载中心图失败";
                             WriteFailureRecord(card.Id, card.Name, reason);
                             Interlocked.Increment(ref failed);
                             return;
@@ -255,7 +255,7 @@ namespace Yugioh
                         bool hasTypeIcon = DrawCardTypeText(image, card);
                         if (!hasTypeIcon)
                         {
-                            string reason = "未找到魔法/陷阱卡图标";
+                            string reason = "加载魔法/陷阱卡图标失败";
                             WriteFailureRecord(card.Id, card.Name, reason);
                             Interlocked.Increment(ref failed);
                             return;
@@ -295,7 +295,7 @@ namespace Yugioh
                                 }
                                 catch (Exception ex)
                                 {
-                                    Console.WriteLine($"警告: 无法删除临时PNG: {tmpPngPath}, 错误: {ex.Message}");
+                                    AppLogger.Warn("CardGenerator", $"无法删除临时 PNG：{tmpPngPath} | Exception={ex.Message}");
                                 }
                             }
                         }
@@ -303,26 +303,26 @@ namespace Yugioh
                     Interlocked.Increment(ref processed);
                     if (processed % 100 == 0)
                     {
-                        Console.WriteLine($"已处理: {processed}/{cardsToProcess.Count} 张卡片");
+                        AppLogger.Info("CardGenerator", $"处理进度：{processed}/{cardsToProcess.Count}。");
                     }
                 }
                 catch (Exception ex)
                 {
                     string reason = $"处理异常: {ex.Message}";
-                    Console.WriteLine($"处理卡片失败: ID={card.Id}, 名称={card.Name}, 错误: {ex.Message}");
+                    AppLogger.Error("CardGenerator", $"卡片处理失败。CardId={card.Id} CardName={card.Name}", ex);
                     WriteFailureRecord(card.Id, card.Name, reason);
                     Interlocked.Increment(ref failed);
                 }
             });
             ClearImageCache();
-            Console.WriteLine($"卡片生成完成！成功: {processed}, 失败: {failed}");
+            AppLogger.Info("CardGenerator", $"卡片生成完成。成功={processed} 失败={failed}");
             int total = processed + failed;
             double successRate = 0.0;
             if (total > 0) successRate = (double)processed / total * 100.0;
-            Console.WriteLine($"成功率: {successRate:F2}% ({processed}/{total})");
-            Console.WriteLine($"卡图输出目录: {Path.GetFullPath(outputFigureDir)}");
+            AppLogger.Info("CardGenerator", $"成功率={successRate:F2}% ({processed}/{total})");
+            AppLogger.Info("CardGenerator", $"卡图输出目录：{Path.GetFullPath(outputFigureDir)}");
             string failureFilePath = Path.GetFullPath(Path.Combine("log", "failure.txt"));
-            Console.WriteLine($"失败记录输出目录: {failureFilePath}");
+            AppLogger.Info("CardGenerator", $"失败记录输出文件：{failureFilePath}");
         }
         // 卡名
         private static void DrawCardName(Image image, string cardName, bool isSpecialCard)
@@ -353,7 +353,7 @@ namespace Yugioh
                     iterations++;
                     if (iterations > 200)
                     {
-                        Console.WriteLine($"[CardNameFit][Warn] 超过迭代上限，强制使用当前字体。名称=\"{cardName}\"");
+                        AppLogger.Warn("CardGenerator/CardName", $"名称排版超过迭代上限，使用当前字体。Name={cardName}");
                         break;
                     }
                 }
@@ -372,7 +372,7 @@ namespace Yugioh
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"绘制卡名失败: {ex.Message}");
+                AppLogger.Error("CardGenerator/CardName", "绘制卡名失败。", ex);
             }
         }
         // 返回单个字符的“有效长度”权重（供统一使用）
@@ -429,7 +429,7 @@ namespace Yugioh
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[CardName] 测量异常: {ex.Message}");
+                AppLogger.Warn("CardGenerator/CardName", $"文本宽度测量异常。Exception={ex.Message}");
                 return 0f;
             }
         }
@@ -458,13 +458,13 @@ namespace Yugioh
                     }
                     else
                     {
-                        Console.WriteLine($"错误: 未找到攻守条文件: {atkDefImagePath}");
+                        AppLogger.Error("CardGenerator/AtkDefBar", $"未找到攻守条资源文件：{atkDefImagePath}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加攻守条失败: {ex.Message}");
+                AppLogger.Error("CardGenerator/AtkDefBar", "绘制攻守条失败。", ex);
             }
         }
         // 属性
@@ -498,12 +498,12 @@ namespace Yugioh
                 }
                 else
                 {
-                    Console.WriteLine($"错误: 未找到属性图像文件: {attributeImagePath}");
+                    AppLogger.Error("CardGenerator/Attribute", $"未找到属性图像资源：{attributeImagePath}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加属性图像失败: {ex.Message}");
+                AppLogger.Error("CardGenerator/Attribute", "绘制属性图像失败。", ex);
             }
         }
         // 灵摆刻度
@@ -532,7 +532,7 @@ namespace Yugioh
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加灵摆刻度失败: {ex.Message}");
+                AppLogger.Error("CardGenerator/PendulumScale", "绘制灵摆刻度失败。", ex);
             }
         }
         // 星级/阶级
@@ -551,7 +551,7 @@ namespace Yugioh
                 string iconFilePath = Path.Combine(assetFigureDir, IndicatorsDir, iconFileName);
                 if (!File.Exists(iconFilePath))
                 {
-                    Console.WriteLine($"错误: 未找到星级/阶级图标文件: {iconFilePath}");
+                    AppLogger.Error("CardGenerator/LevelRank", $"未找到星级/阶级图标资源：{iconFilePath}");
                     return;
                 }
                 int iconSpacing = 0;
@@ -597,7 +597,7 @@ namespace Yugioh
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加星级/阶级图标失败: {ex.Message}");
+                AppLogger.Error("CardGenerator/LevelRank", "绘制星级/阶级图标失败。", ex);
             }
         }
         // 攻击力和守备力/Link值
@@ -649,7 +649,7 @@ namespace Yugioh
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加攻击力/守备力/链接值失败: {ex.Message}");
+                AppLogger.Error("CardGenerator/AtkDefValue", "绘制攻击力/守备力/链接值失败。", ex);
             }
         }
         // ID
@@ -667,7 +667,7 @@ namespace Yugioh
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加ID失败: {ex.Message}");
+                AppLogger.Error("CardGenerator/CardId", "绘制卡片 ID 失败。", ex);
             }
         }
         // 卡图
@@ -708,7 +708,7 @@ namespace Yugioh
                             }
                             else
                             {
-                                Console.WriteLine($"警告: 灵摆卡图尺寸异常，建议及时检查并修改。ID={card.Id}, 名称={card.Name}, 尺寸={cardImage.Width}x{cardImage.Height}");
+                                AppLogger.Warn("CardGenerator/Artwork", $"灵摆卡图尺寸异常。CardId={card.Id} CardName={card.Name} Size={cardImage.Width}x{cardImage.Height}");
                             }
                         }
                         cardImage.Mutate(ctx => ctx.Resize(new ResizeOptions { Size = new Size(targetWidth, targetHeight), Sampler = KnownResamplers.Lanczos3, Mode = ResizeMode.Stretch }));
@@ -718,13 +718,13 @@ namespace Yugioh
                 }
                 else
                 {
-                    Console.WriteLine($"警告: 未找到卡图: {cardImagePath},ID={card.Id}, 名称={card.Name}");
+                    AppLogger.Warn("CardGenerator/Artwork", $"未找到卡图资源。CardId={card.Id} CardName={card.Name} Path={cardImagePath}");
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加卡图失败: {ex.Message}, ID={card.Id}, 名称={card.Name}");
+                AppLogger.Error("CardGenerator/Artwork", $"绘制卡图失败。CardId={card.Id} CardName={card.Name}", ex);
                 return false;
             }
         }
@@ -776,7 +776,7 @@ namespace Yugioh
                     }
                     else
                     {
-                        Console.WriteLine($"警告: 卡片{card.Id} 未找到图标: {iconPath}");
+                        AppLogger.Warn("CardGenerator/CardType", $"未找到魔法/陷阱图标。CardId={card.Id} Path={iconPath}");
                         return false;
                     }
                 }
@@ -789,7 +789,7 @@ namespace Yugioh
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加卡片类型文字失败: {ex.Message}");
+                AppLogger.Error("CardGenerator/CardType", "绘制卡片类型文本失败。", ex);
                 return false;
             }
         }
@@ -837,19 +837,19 @@ namespace Yugioh
                         }
                         else
                         {
-                            Console.WriteLine($"警告: 未找到箭头位置配置: {direction}");
+                            AppLogger.Warn("CardGenerator/LinkArrow", $"未找到链接箭头位置配置：{direction}");
                         }
 
                     }
                     else
                     {
-                        Console.WriteLine($"警告: 未找到链接箭头图片: {candidatePath}");
+                        AppLogger.Warn("CardGenerator/LinkArrow", $"未找到链接箭头资源：{candidatePath}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加Link箭头标记失败: {ex.Message}");
+                AppLogger.Error("CardGenerator/LinkArrow", "绘制 Link 箭头失败。", ex);
             }
         }
         // 灵摆效果
@@ -921,7 +921,7 @@ namespace Yugioh
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"绘制灵摆效果描述失败: {ex.Message}");
+                AppLogger.Error("CardGenerator/PendulumDescription", "绘制灵摆效果描述失败。", ex);
             }
         }
         // 卡牌情报
@@ -1047,7 +1047,7 @@ namespace Yugioh
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"绘制卡牌效果描述失败: {ex.Message}");
+                AppLogger.Error("CardGenerator/CardDescription", "绘制卡牌效果描述失败。", ex);
             }
         }
         private static List<string> WrapLineByEffectiveLength(string line, float maxEffectiveLength)
@@ -1092,7 +1092,7 @@ namespace Yugioh
                 {
                     Directory.CreateDirectory(dir);
                 }
-                string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ID = {id} Name = {name} 原因 = {reason}{Environment.NewLine}";
+                string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [WARN] [CardGenerator/FailureRecord] CardId={id} CardName={name} Reason={reason}{Environment.NewLine}";
                 lock (failureFileLock)
                 {
                     File.AppendAllText(failureFile, line);
@@ -1100,7 +1100,7 @@ namespace Yugioh
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"警告: 无法写入 log/failure.txt: {ex.Message}");
+                AppLogger.Warn("CardGenerator/FailureRecord", $"无法写入失败记录文件 log/failure.txt。Exception={ex.Message}");
             }
         }
     }

@@ -22,11 +22,11 @@ class Program
         }
         if (debug)
         {
-            Console.WriteLine("启用调试模式: 仅处理dev/debug.txt中指定ID的卡片");
+            AppLogger.Info("Program", "调试模式已启用，仅处理 dev/debug.txt 中指定 ID 的卡片。");
         }
         if (usePng)
         {
-            Console.WriteLine("使用PNG格式: 将生成无损PNG图像而非JPG图像");
+            AppLogger.Info("Program", "输出格式已设置为 PNG，将生成无损图像而非 JPG。");
         }
         CardGenerator.GenerateCardImages(cardsJsonPath, assetFigureDir, outputArtworkDir, debug, usePng);
     }
