@@ -98,17 +98,21 @@ jobs:
             echo "| :---: | :---: | :---: |" >> release_body.md
 
             # Parse log file
-            # Format: [Date Time] ID = {id} Name = {name} 原因 = {reason}
+            # Format: [Timestamp] [Level] [Source] CardId={id} CardName={name} Reason={reason}
 
             while IFS= read -r line; do
               # Use regex to extract fields
-              if [[ $line =~ ID\ =\ (.*)\ Name\ =\ (.*)\ 原因\ =\ (.*) ]]; then
+              if [[ $line =~ CardId=(.*)\ CardName=(.*)\ Reason=(.*) ]]; then
+                id="${BASH_REMATCH[1]}"
+                name="${BASH_REMATCH[2]}"
+                reason="${BASH_REMATCH[3]}"
+                echo "| $id | $name | $reason |" >> release_body.md
+              elif [[ $line =~ ID\ =\ (.*)\ Name\ =\ (.*)\ 原因\ =\ (.*) ]]; then
                 id="${BASH_REMATCH[1]}"
                 name="${BASH_REMATCH[2]}"
                 reason="${BASH_REMATCH[3]}"
                 echo "| $id | $name | $reason |" >> release_body.md
               elif [[ $line =~ ID\ =\ (.*)\ 原因\ =\ (.*) ]]; then
-                 # Fallback for old format if any
                 id="${BASH_REMATCH[1]}"
                 reason="${BASH_REMATCH[2]}"
                 echo "| $id | Unknown | $reason |" >> release_body.md
